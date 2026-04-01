@@ -1,0 +1,23 @@
+{
+  "name": "signalk-app-dock",
+  "version": "0.1.0",
+  "description": "macOS-style configurable app dock for switching between SignalK webapps on touch screens",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp",
+    "signalk-category-instruments"
+  ],
+  "signalk-plugin-enabled-by-default": true,
+  "signalk": {
+    "displayName": "App Dock"
+  },
+  "main": "plugin/index.js",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  }
+}
