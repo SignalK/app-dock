@@ -1,15 +1,15 @@
-;(async function DockApp () {
+;(async function DockApp() {
   'use strict'
 
   const DEFAULTS = {
-    position:            'bottom',
-    trigger:             'both',
-    triggerCorner:       'bottom-right',
-    longPressDuration:   400,
-    iframeMode:          'keep-alive',
-    iconSize:            56,
-    magnification:       true,
-    magnificationScale:  1.7,
+    position: 'bottom',
+    trigger: 'both',
+    triggerCorner: 'bottom-right',
+    longPressDuration: 400,
+    iframeMode: 'keep-alive',
+    iconSize: 56,
+    magnification: true,
+    magnificationScale: 1.7,
     apps: []
   }
 
@@ -41,19 +41,19 @@
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
   const $iframeContainer = document.getElementById('iframe-container')
-  const $backdrop        = document.getElementById('dock-backdrop')
-  const $dock            = document.getElementById('dock')
-  const $dockInner       = document.getElementById('dock-inner')
-  const $triggerCorner   = document.getElementById('trigger-corner')
-  const $loadingOverlay  = document.getElementById('loading-overlay')
-  const $loadingLabel    = document.getElementById('loading-label')
-  const $idleHint        = document.getElementById('idle-hint')
-  const $idleHintText    = document.getElementById('idle-hint-text')
+  const $backdrop = document.getElementById('dock-backdrop')
+  const $dock = document.getElementById('dock')
+  const $dockInner = document.getElementById('dock-inner')
+  const $triggerCorner = document.getElementById('trigger-corner')
+  const $loadingOverlay = document.getElementById('loading-overlay')
+  const $loadingLabel = document.getElementById('loading-label')
+  const $idleHint = document.getElementById('idle-hint')
+  const $idleHintText = document.getElementById('idle-hint-text')
 
   // ─── State ───────────────────────────────────────────────────────────────────
-  let dockVisible  = false
-  let activeIndex  = -1
-  const iframes    = {}
+  let dockVisible = false
+  let activeIndex = -1
+  const iframes = {}
 
   // ─── Apply dock position class & alignment ───────────────────────────────────
   const pos = cfg.position
@@ -65,11 +65,11 @@
 
   // ─── Magnification constants ─────────────────────────────────────────────────
   const MAG_ENABLED = cfg.magnification !== false
-  const MAG_SCALE   = Math.max(1, Math.min(cfg.magnificationScale || 1.7, 2.5))
-  const MAG_RADIUS  = cfg.iconSize * 3.5
+  const MAG_SCALE = Math.max(1, Math.min(cfg.magnificationScale || 1.7, 2.5))
+  const MAG_RADIUS = cfg.iconSize * 3.5
 
   // ─── Idle hint ───────────────────────────────────────────────────────────────
-  function setIdleHint () {
+  function setIdleHint() {
     if (!cfg.apps || cfg.apps.length === 0) {
       $idleHintText.textContent = 'No apps configured \u2014 add webapps in Plugin Config \u2192 App Dock'
       return
@@ -84,22 +84,26 @@
     }
   }
 
-  function hideIdleHint () {
+  function hideIdleHint() {
     if ($idleHint) $idleHint.classList.add('hidden')
   }
 
   // ─── Tooltip direction based on dock edge ────────────────────────────────────
-  function labelClass () {
+  function labelClass() {
     switch (pos) {
-      case 'top':    return 'dock-label-below'
-      case 'left':   return 'dock-label-right'
-      case 'right':  return 'dock-label-left'
-      default:       return ''
+      case 'top':
+        return 'dock-label-below'
+      case 'left':
+        return 'dock-label-right'
+      case 'right':
+        return 'dock-label-left'
+      default:
+        return ''
     }
   }
 
   // ─── Build dock items ─────────────────────────────────────────────────────────
-  function buildDock () {
+  function buildDock() {
     $dockInner.innerHTML = ''
     const sz = cfg.iconSize
     const radius = Math.round(sz * 0.25) + 'px'
@@ -107,13 +111,13 @@
 
     cfg.apps.forEach((app, i) => {
       const $item = document.createElement('div')
-      $item.className    = 'dock-item'
+      $item.className = 'dock-item'
       $item.dataset.index = i
 
       const $icon = document.createElement('div')
-      $icon.className  = 'dock-icon'
-      $icon.style.width        = sz + 'px'
-      $icon.style.height       = sz + 'px'
+      $icon.className = 'dock-icon'
+      $icon.style.width = sz + 'px'
+      $icon.style.height = sz + 'px'
       $icon.style.borderRadius = radius
       if (app.color) $icon.style.background = app.color
 
@@ -125,12 +129,12 @@
         $img.onerror = () => {
           $icon.removeChild($img)
           $icon.style.fontSize = Math.round(sz * 0.42) + 'px'
-          $icon.textContent    = app.label.slice(0, 2).toUpperCase()
+          $icon.textContent = app.label.slice(0, 2).toUpperCase()
         }
         $icon.appendChild($img)
       } else {
         $icon.style.fontSize = Math.round(sz * 0.48) + 'px'
-        $icon.textContent    = iconVal || app.label.slice(0, 2).toUpperCase()
+        $icon.textContent = iconVal || app.label.slice(0, 2).toUpperCase()
       }
 
       const $dot = document.createElement('div')
@@ -144,12 +148,15 @@
       $item.appendChild($dot)
       $item.appendChild($label)
 
-      $item.addEventListener('touchstart', () => $item.classList.add('pressing'),   { passive: true })
-      $item.addEventListener('touchend',   () => $item.classList.remove('pressing'), { passive: true })
-      $item.addEventListener('touchcancel',() => $item.classList.remove('pressing'), { passive: true })
+      $item.addEventListener('touchstart', () => $item.classList.add('pressing'), { passive: true })
+      $item.addEventListener('touchend', () => $item.classList.remove('pressing'), { passive: true })
+      $item.addEventListener('touchcancel', () => $item.classList.remove('pressing'), { passive: true })
 
       $item.addEventListener('click', (e) => {
-        if (magScrubbed) { e.preventDefault(); return }
+        if (magScrubbed) {
+          e.preventDefault()
+          return
+        }
         switchToApp(i)
       })
 
@@ -159,10 +166,10 @@
 
   // ─── Magnification ───────────────────────────────────────────────────────────
   let magRafPending = false
-  let magScrubbed   = false
+  let magScrubbed = false
   let magTouchStartAxis = 0
 
-  function applyMagnification (pointerPos) {
+  function applyMagnification(pointerPos) {
     const items = $dockInner.querySelectorAll('.dock-item')
     let closestIdx = -1
     let closestDist = Infinity
@@ -170,20 +177,21 @@
     items.forEach((item, i) => {
       const icon = item.querySelector('.dock-icon')
       const rect = item.getBoundingClientRect()
-      const center = isVertical
-        ? rect.top + rect.height / 2
-        : rect.left + rect.width / 2
+      const center = isVertical ? rect.top + rect.height / 2 : rect.left + rect.width / 2
       const p = isVertical ? pointerPos.y : pointerPos.x
 
       const dist = Math.abs(p - center)
-      if (dist < closestDist) { closestDist = dist; closestIdx = i }
+      if (dist < closestDist) {
+        closestDist = dist
+        closestIdx = i
+      }
 
       const ratio = Math.min(dist / MAG_RADIUS, 1)
       const scale = 1 + (MAG_SCALE - 1) * (1 - ratio * ratio)
       const newSize = Math.round(cfg.iconSize * scale)
 
       icon.classList.remove('settling')
-      icon.style.width  = newSize + 'px'
+      icon.style.width = newSize + 'px'
       icon.style.height = newSize + 'px'
       icon.style.borderRadius = Math.round(newSize * 0.25) + 'px'
 
@@ -199,14 +207,14 @@
     })
   }
 
-  function resetMagnification () {
+  function resetMagnification() {
     const items = $dockInner.querySelectorAll('.dock-item')
     const sz = cfg.iconSize
 
     items.forEach((item) => {
       const icon = item.querySelector('.dock-icon')
       icon.classList.add('settling')
-      icon.style.width  = sz + 'px'
+      icon.style.width = sz + 'px'
       icon.style.height = sz + 'px'
       icon.style.borderRadius = Math.round(sz * 0.25) + 'px'
 
@@ -234,43 +242,57 @@
       resetMagnification()
     })
 
-    $dockInner.addEventListener('touchstart', (e) => {
-      const t = e.touches[0]
-      magScrubbed = false
-      magTouchStartAxis = isVertical ? t.clientY : t.clientX
-    }, { passive: true })
+    $dockInner.addEventListener(
+      'touchstart',
+      (e) => {
+        const t = e.touches[0]
+        magScrubbed = false
+        magTouchStartAxis = isVertical ? t.clientY : t.clientX
+      },
+      { passive: true }
+    )
 
-    $dockInner.addEventListener('touchmove', (e) => {
-      const t = e.touches[0]
-      const current = isVertical ? t.clientY : t.clientX
-      if (Math.abs(current - magTouchStartAxis) > 10) {
-        magScrubbed = true
-      }
-      if (magRafPending) return
-      magRafPending = true
-      const pos = { x: t.clientX, y: t.clientY }
-      requestAnimationFrame(() => {
-        applyMagnification(pos)
+    $dockInner.addEventListener(
+      'touchmove',
+      (e) => {
+        const t = e.touches[0]
+        const current = isVertical ? t.clientY : t.clientX
+        if (Math.abs(current - magTouchStartAxis) > 10) {
+          magScrubbed = true
+        }
+        if (magRafPending) return
+        magRafPending = true
+        const pos = { x: t.clientX, y: t.clientY }
+        requestAnimationFrame(() => {
+          applyMagnification(pos)
+          magRafPending = false
+        })
+      },
+      { passive: true }
+    )
+
+    $dockInner.addEventListener(
+      'touchend',
+      () => {
         magRafPending = false
-      })
-    }, { passive: true })
-
-    $dockInner.addEventListener('touchend', () => {
-      magRafPending = false
-      resetMagnification()
-      setTimeout(() => { magScrubbed = false }, 50)
-    }, { passive: true })
+        resetMagnification()
+        setTimeout(() => {
+          magScrubbed = false
+        }, 50)
+      },
+      { passive: true }
+    )
   }
 
   // ─── Show / hide dock ────────────────────────────────────────────────────────
-  function showDock () {
+  function showDock() {
     if (dockVisible) return
     dockVisible = true
     $dock.classList.add('visible')
     $backdrop.classList.add('visible')
   }
 
-  function hideDock () {
+  function hideDock() {
     if (!dockVisible) return
     dockVisible = false
     $dock.classList.remove('visible')
@@ -281,17 +303,17 @@
   $backdrop.addEventListener('click', hideDock)
 
   // ─── Loading overlay helpers ──────────────────────────────────────────────────
-  function showLoading (label) {
+  function showLoading(label) {
     $loadingLabel.textContent = `Loading ${label}\u2026`
     $loadingOverlay.classList.add('visible')
   }
 
-  function hideLoading () {
+  function hideLoading() {
     $loadingOverlay.classList.remove('visible')
   }
 
   // ─── Switch to app ────────────────────────────────────────────────────────────
-  function switchToApp (index) {
+  function switchToApp(index) {
     const app = cfg.apps[index]
     if (!app) return
 
@@ -305,16 +327,16 @@
 
     if (cfg.iframeMode === 'destroy') {
       $iframeContainer.innerHTML = ''
-      Object.keys(iframes).forEach(k => delete iframes[k])
+      Object.keys(iframes).forEach((k) => delete iframes[k])
     } else {
-      Object.values(iframes).forEach(f => f.classList.remove('active'))
+      Object.values(iframes).forEach((f) => f.classList.remove('active'))
     }
 
     if (!iframes[app.url]) {
       if (!alreadyLoaded) showLoading(app.label)
 
       const $frame = document.createElement('iframe')
-      $frame.allow   = 'fullscreen; geolocation'
+      $frame.allow = 'fullscreen; geolocation'
       $frame.sandbox = 'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock'
       $frame.style.touchAction = 'auto'
 
@@ -332,30 +354,30 @@
   }
 
   // ─── Corner trigger zone: position it ────────────────────────────────────────
-  function positionCornerZone () {
+  function positionCornerZone() {
     const [vert, horiz] = cfg.triggerCorner.split('-')
     const sz = 80
 
-    $triggerCorner.style.width  = sz + 'px'
+    $triggerCorner.style.width = sz + 'px'
     $triggerCorner.style.height = sz + 'px'
 
-    $triggerCorner.style.top    = ''
+    $triggerCorner.style.top = ''
     $triggerCorner.style.bottom = ''
-    $triggerCorner.style.left   = ''
-    $triggerCorner.style.right  = ''
+    $triggerCorner.style.left = ''
+    $triggerCorner.style.right = ''
 
-    $triggerCorner.style[vert]  = '0'
+    $triggerCorner.style[vert] = '0'
     $triggerCorner.style[horiz] = '0'
   }
 
   // ─── Gesture: long-press on corner (touch + mouse) ────────────────────────────
   if (cfg.trigger === 'longpress' || cfg.trigger === 'both') {
-    let pressTimer  = null
+    let pressTimer = null
     let pressActive = false
 
     const startPress = () => {
       pressActive = true
-      pressTimer  = setTimeout(() => {
+      pressTimer = setTimeout(() => {
         if (!pressActive) return
         showDock()
         if (navigator.vibrate) navigator.vibrate(8)
@@ -368,12 +390,12 @@
     }
 
     $triggerCorner.addEventListener('touchstart', startPress, { passive: true })
-    $triggerCorner.addEventListener('touchend',    cancelPress, { passive: true })
+    $triggerCorner.addEventListener('touchend', cancelPress, { passive: true })
     $triggerCorner.addEventListener('touchcancel', cancelPress, { passive: true })
     $triggerCorner.addEventListener('touchmove', () => cancelPress(), { passive: true })
 
     $triggerCorner.addEventListener('mousedown', startPress)
-    $triggerCorner.addEventListener('mouseup',   cancelPress)
+    $triggerCorner.addEventListener('mouseup', cancelPress)
     $triggerCorner.addEventListener('mouseleave', cancelPress)
   }
 
@@ -389,9 +411,9 @@
       let atEdge = false
 
       if (pos === 'bottom' && e.clientY >= H - EDGE_ZONE) atEdge = true
-      if (pos === 'top'    && e.clientY <= EDGE_ZONE)      atEdge = true
-      if (pos === 'left'   && e.clientX <= EDGE_ZONE)      atEdge = true
-      if (pos === 'right'  && e.clientX >= W - EDGE_ZONE)  atEdge = true
+      if (pos === 'top' && e.clientY <= EDGE_ZONE) atEdge = true
+      if (pos === 'left' && e.clientX <= EDGE_ZONE) atEdge = true
+      if (pos === 'right' && e.clientX >= W - EDGE_ZONE) atEdge = true
 
       if (atEdge && !edgeTimer) {
         edgeTimer = setTimeout(() => {
@@ -407,56 +429,82 @@
 
   // ─── Gesture: swipe from edge ────────────────────────────────────────────────
   if (cfg.trigger === 'swipe' || cfg.trigger === 'both') {
-    const EDGE_ZONE  = 18
-    const SWIPE_MIN  = 48
+    const EDGE_ZONE = 18
+    const SWIPE_MIN = 48
     const AXIS_LIMIT = 60
 
     let swipeArmed = false
     let swipeStartX = 0
     let swipeStartY = 0
 
-    document.addEventListener('touchstart', (e) => {
-      if (dockVisible) return
-      swipeArmed = false
-      const t = e.touches[0]
-      const W = window.innerWidth
-      const H = window.innerHeight
-      swipeStartX = t.clientX
-      swipeStartY = t.clientY
+    document.addEventListener(
+      'touchstart',
+      (e) => {
+        if (dockVisible) return
+        swipeArmed = false
+        const t = e.touches[0]
+        const W = window.innerWidth
+        const H = window.innerHeight
+        swipeStartX = t.clientX
+        swipeStartY = t.clientY
 
-      if (pos === 'bottom' && t.clientY > H - EDGE_ZONE) swipeArmed = true
-      if (pos === 'top'    && t.clientY < EDGE_ZONE)      swipeArmed = true
-      if (pos === 'left'   && t.clientX < EDGE_ZONE)      swipeArmed = true
-      if (pos === 'right'  && t.clientX > W - EDGE_ZONE)  swipeArmed = true
-    }, { passive: true, capture: true })
+        if (pos === 'bottom' && t.clientY > H - EDGE_ZONE) swipeArmed = true
+        if (pos === 'top' && t.clientY < EDGE_ZONE) swipeArmed = true
+        if (pos === 'left' && t.clientX < EDGE_ZONE) swipeArmed = true
+        if (pos === 'right' && t.clientX > W - EDGE_ZONE) swipeArmed = true
+      },
+      { passive: true, capture: true }
+    )
 
-    document.addEventListener('touchmove', (e) => {
-      if (!swipeArmed) return
-      const t = e.touches[0]
-      const dx = t.clientX - swipeStartX
-      const dy = t.clientY - swipeStartY
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!swipeArmed) return
+        const t = e.touches[0]
+        const dx = t.clientX - swipeStartX
+        const dy = t.clientY - swipeStartY
 
-      const perp = (pos === 'bottom' || pos === 'top') ? Math.abs(dx) : Math.abs(dy)
-      if (perp > AXIS_LIMIT) swipeArmed = false
-    }, { passive: true, capture: true })
+        const perp = pos === 'bottom' || pos === 'top' ? Math.abs(dx) : Math.abs(dy)
+        if (perp > AXIS_LIMIT) swipeArmed = false
+      },
+      { passive: true, capture: true }
+    )
 
-    document.addEventListener('touchend', (e) => {
-      if (!swipeArmed || dockVisible) { swipeArmed = false; return }
-      const t = e.changedTouches[0]
-      const dx = t.clientX - swipeStartX
-      const dy = t.clientY - swipeStartY
-      swipeArmed = false
+    document.addEventListener(
+      'touchend',
+      (e) => {
+        if (!swipeArmed || dockVisible) {
+          swipeArmed = false
+          return
+        }
+        const t = e.changedTouches[0]
+        const dx = t.clientX - swipeStartX
+        const dy = t.clientY - swipeStartY
+        swipeArmed = false
 
-      if (pos === 'bottom' && dy < -SWIPE_MIN) { showDock(); if (navigator.vibrate) navigator.vibrate(8) }
-      if (pos === 'top'    && dy >  SWIPE_MIN) { showDock(); if (navigator.vibrate) navigator.vibrate(8) }
-      if (pos === 'left'   && dx >  SWIPE_MIN) { showDock(); if (navigator.vibrate) navigator.vibrate(8) }
-      if (pos === 'right'  && dx < -SWIPE_MIN) { showDock(); if (navigator.vibrate) navigator.vibrate(8) }
-    }, { passive: true, capture: true })
+        if (pos === 'bottom' && dy < -SWIPE_MIN) {
+          showDock()
+          if (navigator.vibrate) navigator.vibrate(8)
+        }
+        if (pos === 'top' && dy > SWIPE_MIN) {
+          showDock()
+          if (navigator.vibrate) navigator.vibrate(8)
+        }
+        if (pos === 'left' && dx > SWIPE_MIN) {
+          showDock()
+          if (navigator.vibrate) navigator.vibrate(8)
+        }
+        if (pos === 'right' && dx < -SWIPE_MIN) {
+          showDock()
+          if (navigator.vibrate) navigator.vibrate(8)
+        }
+      },
+      { passive: true, capture: true }
+    )
   }
 
   // ─── Init ────────────────────────────────────────────────────────────────────
   positionCornerZone()
   buildDock()
   setIdleHint()
-
 })()

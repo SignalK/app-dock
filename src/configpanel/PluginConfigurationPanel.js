@@ -1,25 +1,68 @@
 import React, { useState, useRef, useCallback } from 'react'
 
 const S = {
-  root: { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#333', padding: '16px 0' },
-  sectionTitle: { fontSize: 13, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10, marginTop: 24 },
-  btn: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  root: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    color: '#333',
+    padding: '16px 0'
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: 10,
+    marginTop: 24
+  },
+  btn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer'
+  },
   btnPrimary: { background: '#3b82f6', color: '#fff' },
   btnSave: { background: '#10b981', color: '#fff' },
   btnDanger: { background: '#ef4444', color: '#fff', padding: '4px 10px', fontSize: 11 },
   status: { marginTop: 8, fontSize: 12, minHeight: 18 },
   item: {
-    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-    background: '#f8f9fa', border: '1px solid #e0e0e0',
-    borderRadius: 8, marginBottom: 6, cursor: 'grab'
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '8px 12px',
+    background: '#f8f9fa',
+    border: '1px solid #e0e0e0',
+    borderRadius: 8,
+    marginBottom: 6,
+    cursor: 'grab'
   },
   itemDisabled: { opacity: 0.4 },
   dragOver: { borderColor: '#3b82f6', background: '#eef4ff' },
-  handle: { color: '#bbb', fontSize: 16, cursor: 'grab', userSelect: 'none', flexShrink: 0, width: 18, textAlign: 'center' },
+  handle: {
+    color: '#bbb',
+    fontSize: 16,
+    cursor: 'grab',
+    userSelect: 'none',
+    flexShrink: 0,
+    width: 18,
+    textAlign: 'center'
+  },
   iconBox: {
-    width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center',
-    justifyContent: 'center', background: '#e2e8f0', overflow: 'hidden',
-    flexShrink: 0, fontSize: 18
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#e2e8f0',
+    overflow: 'hidden',
+    flexShrink: 0,
+    fontSize: 18
   },
   iconImg: { width: '100%', height: '100%', objectFit: 'contain', padding: 5 },
   info: { flex: 1, minWidth: 0 },
@@ -28,24 +71,51 @@ const S = {
   toggle: { flexShrink: 0 },
   checkbox: { width: 16, height: 16, cursor: 'pointer', accentColor: '#3b82f6' },
   preview: {
-    display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 6,
-    padding: '12px 18px', background: 'rgba(30,30,32,0.85)',
-    border: '1px solid rgba(255,255,255,0.18)', borderRadius: 18,
-    margin: '16px auto', width: 'fit-content'
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 6,
+    padding: '12px 18px',
+    background: 'rgba(30,30,32,0.85)',
+    border: '1px solid rgba(255,255,255,0.18)',
+    borderRadius: 18,
+    margin: '16px auto',
+    width: 'fit-content'
   },
   actions: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 16 },
   empty: { textAlign: 'center', padding: '30px 16px', color: '#999', fontSize: 13 },
   fieldRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 },
   label: { fontSize: 13, fontWeight: 500, color: '#555', width: 160, flexShrink: 0 },
-  select: { padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: 13, background: '#fff', color: '#333' },
-  input: { padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: 13, width: 80, background: '#fff', color: '#333' },
+  select: {
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    fontSize: 13,
+    background: '#fff',
+    color: '#333'
+  },
+  input: {
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    fontSize: 13,
+    width: 80,
+    background: '#fff',
+    color: '#333'
+  },
   checkboxField: { width: 16, height: 16, accentColor: '#3b82f6' },
   hint: { fontSize: 11, color: '#aaa', marginLeft: 8 }
 }
 
-function IconPreview ({ icon, label, color, size }) {
+function IconPreview({ icon, label, color, size }) {
   const sz = size || 36
-  const style = { ...S.iconBox, width: sz, height: sz, borderRadius: sz * 0.22, ...(color ? { background: color } : {}) }
+  const style = {
+    ...S.iconBox,
+    width: sz,
+    height: sz,
+    borderRadius: sz * 0.22,
+    ...(color ? { background: color } : {})
+  }
   const iconVal = icon || ''
   if (iconVal.startsWith('/') || iconVal.startsWith('http')) {
     return (
@@ -54,7 +124,10 @@ function IconPreview ({ icon, label, color, size }) {
           src={iconVal}
           alt={label}
           style={{ ...S.iconImg, padding: sz * 0.12 }}
-          onError={e => { e.target.style.display = 'none'; e.target.parentNode.textContent = (label || '??').slice(0, 2).toUpperCase() }}
+          onError={(e) => {
+            e.target.style.display = 'none'
+            e.target.parentNode.textContent = (label || '??').slice(0, 2).toUpperCase()
+          }}
         />
       </div>
     )
@@ -62,39 +135,43 @@ function IconPreview ({ icon, label, color, size }) {
   return <div style={style}>{iconVal || (label || '??').slice(0, 2).toUpperCase()}</div>
 }
 
-function SelectField ({ label, value, options, onChange, hint }) {
+function SelectField({ label, value, options, onChange, hint }) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
-      <select style={S.select} value={value} onChange={e => onChange(e.target.value)}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      <select style={S.select} value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
       </select>
       {hint && <span style={S.hint}>{hint}</span>}
     </div>
   )
 }
 
-function NumberField ({ label, value, onChange, hint }) {
+function NumberField({ label, value, onChange, hint }) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
-      <input style={S.input} type="number" value={value} onChange={e => onChange(Number(e.target.value))} />
+      <input style={S.input} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} />
       {hint && <span style={S.hint}>{hint}</span>}
     </div>
   )
 }
 
-function CheckboxField ({ label, checked, onChange, hint }) {
+function CheckboxField({ label, checked, onChange, hint }) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
-      <input type="checkbox" style={S.checkboxField} checked={checked} onChange={e => onChange(e.target.checked)} />
+      <input type="checkbox" style={S.checkboxField} checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {hint && <span style={S.hint}>{hint}</span>}
     </div>
   )
 }
 
-export default function PluginConfigurationPanel ({ configuration, save }) {
+export default function PluginConfigurationPanel({ configuration, save }) {
   const cfg = configuration || {}
   const [apps, setApps] = useState(() => cfg.apps || [])
   const [position, setPosition] = useState(cfg.position || 'bottom')
@@ -115,11 +192,20 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
   const appsRef = useRef(apps)
   appsRef.current = apps
 
-  const buildConfig = useCallback((appsList) => ({
-    position, trigger, triggerCorner, longPressDuration,
-    iframeMode, iconSize, magnification, magnificationScale,
-    apps: appsList
-  }), [position, trigger, triggerCorner, longPressDuration, iframeMode, iconSize, magnification, magnificationScale])
+  const buildConfig = useCallback(
+    (appsList) => ({
+      position,
+      trigger,
+      triggerCorner,
+      longPressDuration,
+      iframeMode,
+      iconSize,
+      magnification,
+      magnificationScale,
+      apps: appsList
+    }),
+    [position, trigger, triggerCorner, longPressDuration, iframeMode, iconSize, magnification, magnificationScale]
+  )
 
   const doSave = useCallback(() => {
     save(buildConfig(apps))
@@ -135,10 +221,16 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
       const res = await fetch('/skServer/webapps')
       const allWebapps = await res.json()
       const webapps = allWebapps
-        .filter(w => w.name !== 'signalk-app-dock')
-        .map(w => {
+        .filter((w) => w.name !== 'signalk-app-dock')
+        .map((w) => {
           if (w.name === '@signalk/server-admin-ui') {
-            return { name: w.name, label: 'Settings', url: '/admin/', icon: '/signalk-app-dock/icon-settings.svg', isAdmin: true }
+            return {
+              name: w.name,
+              label: 'Settings',
+              url: '/admin/',
+              icon: '/signalk-app-dock/icon-settings.svg',
+              isAdmin: true
+            }
           }
           return {
             name: w.name,
@@ -156,7 +248,7 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
       }
 
       const current = appsRef.current
-      const existingUrls = new Set(current.map(a => a.url))
+      const existingUrls = new Set(current.map((a) => a.url))
       let added = 0
       const merged = [...current]
       for (const w of webapps) {
@@ -173,7 +265,11 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
       }
 
       setApps(merged)
-      setStatus(added > 0 ? `Found ${webapps.length} webapps, added ${added} new.` : `All ${webapps.length} webapps already in list.`)
+      setStatus(
+        added > 0
+          ? `Found ${webapps.length} webapps, added ${added} new.`
+          : `All ${webapps.length} webapps already in list.`
+      )
       setStatusError(false)
     } catch (e) {
       setStatus('Discovery failed: ' + e.message)
@@ -182,11 +278,14 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
     setDiscovering(false)
   }
 
-  const toggleApp = (i) => setApps(apps.map((a, j) => j === i ? { ...a, enabled: !a.enabled } : a))
+  const toggleApp = (i) => setApps(apps.map((a, j) => (j === i ? { ...a, enabled: !a.enabled } : a)))
   const removeApp = (i) => setApps(apps.filter((_, j) => j !== i))
 
   const onDragStart = (i) => setDragIdx(i)
-  const onDragOver = (e, i) => { e.preventDefault(); setOverIdx(i) }
+  const onDragOver = (e, i) => {
+    e.preventDefault()
+    setOverIdx(i)
+  }
   const onDragLeave = () => setOverIdx(null)
   const onDrop = (e, dropIdx) => {
     e.preventDefault()
@@ -199,47 +298,75 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
     }
     setDragIdx(null)
   }
-  const onDragEnd = () => { setDragIdx(null); setOverIdx(null) }
+  const onDragEnd = () => {
+    setDragIdx(null)
+    setOverIdx(null)
+  }
 
-  const enabledApps = apps.filter(a => a.enabled !== false)
+  const enabledApps = apps.filter((a) => a.enabled !== false)
 
   return (
     <div style={S.root}>
       <div style={S.sectionTitle}>Dock Settings</div>
 
-      <SelectField label="Dock position" value={position} onChange={setPosition}
+      <SelectField
+        label="Dock position"
+        value={position}
+        onChange={setPosition}
         options={[
-          { value: 'bottom', label: 'Bottom' }, { value: 'top', label: 'Top' },
-          { value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }
-        ]} />
+          { value: 'bottom', label: 'Bottom' },
+          { value: 'top', label: 'Top' },
+          { value: 'left', label: 'Left' },
+          { value: 'right', label: 'Right' }
+        ]}
+      />
 
-      <SelectField label="Show trigger" value={trigger} onChange={setTrigger}
+      <SelectField
+        label="Show trigger"
+        value={trigger}
+        onChange={setTrigger}
         options={[
           { value: 'both', label: 'Long-press + Swipe' },
           { value: 'longpress', label: 'Long-press only' },
           { value: 'swipe', label: 'Swipe only' }
-        ]} />
+        ]}
+      />
 
-      <SelectField label="Long-press corner" value={triggerCorner} onChange={setTriggerCorner}
+      <SelectField
+        label="Long-press corner"
+        value={triggerCorner}
+        onChange={setTriggerCorner}
         options={[
-          { value: 'bottom-right', label: 'Bottom-right' }, { value: 'bottom-left', label: 'Bottom-left' },
-          { value: 'top-right', label: 'Top-right' }, { value: 'top-left', label: 'Top-left' }
-        ]} />
+          { value: 'bottom-right', label: 'Bottom-right' },
+          { value: 'bottom-left', label: 'Bottom-left' },
+          { value: 'top-right', label: 'Top-right' },
+          { value: 'top-left', label: 'Top-left' }
+        ]}
+      />
 
       <NumberField label="Long-press duration" value={longPressDuration} onChange={setLongPressDuration} hint="ms" />
 
-      <SelectField label="iFrame lifecycle" value={iframeMode} onChange={setIframeMode}
+      <SelectField
+        label="iFrame lifecycle"
+        value={iframeMode}
+        onChange={setIframeMode}
         options={[
           { value: 'keep-alive', label: 'Keep-alive (faster switching, more RAM)' },
           { value: 'destroy', label: 'Destroy (reload each time, less RAM)' }
-        ]} />
+        ]}
+      />
 
       <NumberField label="Icon size" value={iconSize} onChange={setIconSize} hint="px" />
 
       <CheckboxField label="Magnification effect" checked={magnification} onChange={setMagnification} />
 
       {magnification && (
-        <NumberField label="Magnification scale" value={magnificationScale} onChange={setMagnificationScale} hint="1.0 - 2.5" />
+        <NumberField
+          label="Magnification scale"
+          value={magnificationScale}
+          onChange={setMagnificationScale}
+          hint="1.0 - 2.5"
+        />
       )}
 
       <div style={S.sectionTitle}>Webapps</div>
@@ -250,9 +377,7 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
       >
         {discovering ? 'Discovering\u2026' : 'Discover Installed Webapps'}
       </button>
-      {status && (
-        <div style={{ ...S.status, color: statusError ? '#ef4444' : '#10b981' }}>{status}</div>
-      )}
+      {status && <div style={{ ...S.status, color: statusError ? '#ef4444' : '#10b981' }}>{status}</div>}
 
       <div style={S.sectionTitle}>Dock Apps (drag to reorder)</div>
       {apps.length === 0 ? (
@@ -289,7 +414,9 @@ export default function PluginConfigurationPanel ({ configuration, save }) {
                   style={S.checkbox}
                 />
               </div>
-              <button style={{ ...S.btn, ...S.btnDanger }} onClick={() => removeApp(i)}>Remove</button>
+              <button style={{ ...S.btn, ...S.btnDanger }} onClick={() => removeApp(i)}>
+                Remove
+              </button>
             </div>
           ))}
         </div>

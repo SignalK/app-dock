@@ -10,12 +10,14 @@ module.exports = {
     clean: false
   },
   module: {
-    rules: [{
-      test: /\.jsx?$/,
-      loader: 'babel-loader',
-      exclude: /node_modules/,
-      options: { presets: ['@babel/preset-react'] }
-    }]
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: 'babel-loader',
+        exclude: /node_modules/,
+        options: { presets: ['@babel/preset-react'] }
+      }
+    ]
   },
   resolve: {
     extensions: ['.js', '.jsx']

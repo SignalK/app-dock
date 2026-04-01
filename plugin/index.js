@@ -4,14 +4,14 @@ module.exports = (app) => {
   let pluginSettings = {}
   let resolvedApps = []
 
-  function getWebapps () {
+  function getWebapps() {
     return (app.webapps || [])
-      .filter(w => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
-      .map(w => ({
-        name:  w.name,
+      .filter((w) => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
+      .map((w) => ({
+        name: w.name,
         label: w.signalk?.displayName || w.name,
-        url:   `/${w.name}/`,
-        icon:  w.signalk?.appIcon ? `/${w.name}/${w.signalk.appIcon}` : null
+        url: `/${w.name}/`,
+        icon: w.signalk?.appIcon ? `/${w.name}/${w.signalk.appIcon.replace(/^\.\//, '')}` : null
       }))
   }
 
@@ -19,7 +19,7 @@ module.exports = (app) => {
     id: 'signalk-app-dock',
     name: 'App Dock',
 
-    start (settings) {
+    start(settings) {
       pluginSettings = settings
 
       setTimeout(() => {
@@ -27,7 +27,7 @@ module.exports = (app) => {
         if (discovered.length === 0) return
 
         const configured = settings.apps || []
-        const configuredUrls = new Set(configured.map(a => a.url))
+        const configuredUrls = new Set(configured.map((a) => a.url))
 
         const merged = [...configured]
         let added = false
@@ -39,16 +39,18 @@ module.exports = (app) => {
         }
 
         const discoveredByUrl = {}
-        discovered.forEach(d => { discoveredByUrl[d.url] = d })
+        discovered.forEach((d) => {
+          discoveredByUrl[d.url] = d
+        })
 
         resolvedApps = merged
-          .filter(a => a.enabled !== false)
-          .map(a => {
+          .filter((a) => a.enabled !== false)
+          .map((a) => {
             const match = discoveredByUrl[a.url]
             return {
               label: a.label || (match && match.label) || a.url,
-              url:   a.url,
-              icon:  a.icon || (match && match.icon) || null,
+              url: a.url,
+              icon: a.icon || (match && match.icon) || null,
               color: a.color || null
             }
           })
@@ -60,13 +62,13 @@ module.exports = (app) => {
           })
         }
 
-        app.debug('Dock apps: %s', resolvedApps.map(a => a.label).join(', '))
+        app.debug('Dock apps: %s', resolvedApps.map((a) => a.label).join(', '))
       }, 5000)
     },
 
-    stop () {},
+    stop() {},
 
-    registerWithRouter (router) {
+    registerWithRouter(router) {
       router.get('/settings', (req, res) => {
         res.json({
           ...pluginSettings,
@@ -81,14 +83,14 @@ module.exports = (app) => {
 
     schema: {
       type: 'object',
-      description: 'Open /signalk-app-dock/config.html for the visual configurator with discover button and drag-to-reorder.',
+      description:
+        'Open /signalk-app-dock/config.html for the visual configurator with discover button and drag-to-reorder.',
       required: [],
       properties: {
-
         position: {
           type: 'string',
           title: 'Dock position',
-          enum:  ['bottom', 'top', 'left', 'right'],
+          enum: ['bottom', 'top', 'left', 'right'],
           default: 'bottom'
         },
 
@@ -96,7 +98,7 @@ module.exports = (app) => {
           type: 'string',
           title: 'Show trigger',
           description: 'How the dock is revealed',
-          enum:  ['longpress', 'swipe', 'both'],
+          enum: ['longpress', 'swipe', 'both'],
           default: 'both'
         },
 
@@ -104,7 +106,7 @@ module.exports = (app) => {
           type: 'string',
           title: 'Long-press corner',
           description: 'Screen corner that activates the dock on long-press',
-          enum:  ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
+          enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
           default: 'bottom-right'
         },
 
@@ -120,7 +122,7 @@ module.exports = (app) => {
           description:
             'keep-alive: load once and hide/show (faster switching, more RAM). ' +
             'destroy: reload on every switch (slower, minimal RAM).',
-          enum:  ['keep-alive', 'destroy'],
+          enum: ['keep-alive', 'destroy'],
           default: 'keep-alive'
         },
 

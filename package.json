@@ -17,7 +17,9 @@
   "scripts": {
     "build:config": "webpack",
     "prepublishOnly": "webpack",
-    "test": "echo \"No tests yet\""
+    "format": "prettier --write '**/*.{js,json,md,css,html}' && eslint --fix .",
+    "lint": "eslint .",
+    "test": "node --test 'test/**/*.test.js'"
   },
   "author": "",
   "license": "Apache-2.0",
@@ -28,6 +30,9 @@
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
     "babel-loader": "^10.1.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "react": "^19.2.4",
     "webpack": "^5.105.4",
     "webpack-cli": "^7.0.2"

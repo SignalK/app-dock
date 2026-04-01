@@ -1,294 +1,401 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Dock - Configuration</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1a1a2e;
-      color: #e0e0e0;
-      padding: 24px;
-      min-height: 100vh;
-    }
-    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
-    .subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
-    .section { margin-bottom: 32px; }
-    .section-title { font-size: 14px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-
-    /* Discover button */
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 20px;
-      border: none; border-radius: 8px;
-      font-size: 14px; font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-primary { background: #3b82f6; color: #fff; }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-primary:disabled { background: #555; cursor: not-allowed; }
-    .btn-save { background: #10b981; color: #fff; }
-    .btn-save:hover { background: #059669; }
-    .btn-danger { background: #ef4444; color: #fff; padding: 6px 12px; font-size: 12px; }
-    .btn-danger:hover { background: #dc2626; }
-
-    /* App list */
-    .app-list { list-style: none; }
-    .app-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      margin-bottom: 8px;
-      cursor: grab;
-      transition: background 0.15s ease, border-color 0.15s ease;
-    }
-    .app-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
-    .app-item.dragging { opacity: 0.5; background: rgba(59,130,246,0.15); }
-    .app-item.drag-over { border-color: #3b82f6; }
-
-    .drag-handle {
-      color: #555; font-size: 18px; cursor: grab;
-      user-select: none; flex-shrink: 0; width: 20px; text-align: center;
-    }
-
-    .app-icon-preview {
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(58,58,62,0.9);
-      overflow: hidden;
-      flex-shrink: 0;
-      font-size: 20px;
-    }
-    .app-icon-preview img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-      padding: 6px;
-    }
-
-    .app-info { flex: 1; min-width: 0; }
-    .app-name { font-size: 14px; font-weight: 600; }
-    .app-url { font-size: 11px; color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .app-toggle { flex-shrink: 0; }
-    .app-toggle input[type="checkbox"] {
-      width: 18px; height: 18px; cursor: pointer;
-      accent-color: #3b82f6;
-    }
-
-    .app-actions { flex-shrink: 0; }
-
-    .empty-state {
-      text-align: center; padding: 40px 20px;
-      color: #666; font-size: 14px;
-    }
-
-    .status { margin-top: 12px; font-size: 13px; color: #10b981; min-height: 20px; }
-    .status.error { color: #ef4444; }
-
-    .actions-bar { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
-
-    /* Dock preview */
-    .dock-preview {
-      display: flex; align-items: flex-end; justify-content: center;
-      gap: 8px;
-      padding: 14px 20px;
-      background: rgba(30,30,32,0.55);
-      backdrop-filter: blur(60px);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 22px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
-      margin: 20px auto;
-      width: fit-content;
-    }
-    .dock-preview-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(58,58,62,0.9);
-      overflow: hidden;
-      font-size: 22px;
-      transition: transform 0.15s ease;
-    }
-    .dock-preview-icon:hover { transform: scale(1.3); }
-    .dock-preview-icon img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-      padding: 6px;
-    }
-  </style>
-</head>
-<body>
-  <h1>App Dock Configuration</h1>
-  <p class="subtitle">Discover installed webapps, arrange their order, and customize the dock.</p>
-
-  <div class="section">
-    <div class="section-title">Webapps</div>
-    <button class="btn btn-primary" id="discover-btn" onclick="discover()">
-      Discover Installed Webapps
-    </button>
-    <div class="status" id="status"></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Dock Apps (drag to reorder)</div>
-    <ul class="app-list" id="app-list"></ul>
-    <div class="empty-state" id="empty-state" style="display:none">
-      No apps yet. Click Discover above.
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Preview</div>
-    <div class="dock-preview" id="dock-preview"></div>
-  </div>
-
-  <div class="actions-bar">
-    <button class="btn btn-save" onclick="save()">Save Configuration</button>
-  </div>
-
-  <script>
-    let apps = []
-
-    async function loadCurrent () {
-      try {
-        const res = await fetch('/plugins/signalk-app-dock/config')
-        if (res.ok) {
-          const data = await res.json()
-          apps = (data.configuration && data.configuration.apps) || []
-          render()
-        }
-      } catch (e) {
-        console.warn('Could not load current config', e)
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App Dock - Configuration</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        padding: 24px;
+        min-height: 100vh;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #888;
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+      .section {
+        margin-bottom: 32px;
+      }
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+      }
 
-    async function discover () {
-      const btn = document.getElementById('discover-btn')
-      const status = document.getElementById('status')
-      btn.disabled = true
-      btn.textContent = 'Discovering...'
-      status.textContent = ''
-      status.className = 'status'
+      /* Discover button */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .btn-primary:disabled {
+        background: #555;
+        cursor: not-allowed;
+      }
+      .btn-save {
+        background: #10b981;
+        color: #fff;
+      }
+      .btn-save:hover {
+        background: #059669;
+      }
+      .btn-danger {
+        background: #ef4444;
+        color: #fff;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-danger:hover {
+        background: #dc2626;
+      }
 
-      try {
-        const res = await fetch('/skServer/webapps')
-        const allWebapps = await res.json()
-        const webapps = allWebapps
-          .filter(w => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
-          .map(w => ({
-            name:  w.name,
-            label: w.signalk?.displayName || w.name,
-            url:   `/${w.name}/`,
-            icon:  w.signalk?.appIcon ? `/${w.name}/${w.signalk.appIcon}` : null
-          }))
+      /* App list */
+      .app-list {
+        list-style: none;
+      }
+      .app-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        cursor: grab;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .app-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+      .app-item.dragging {
+        opacity: 0.5;
+        background: rgba(59, 130, 246, 0.15);
+      }
+      .app-item.drag-over {
+        border-color: #3b82f6;
+      }
 
-        if (webapps.length === 0) {
-          status.textContent = 'No webapps found. Is the server fully started?'
+      .drag-handle {
+        color: #555;
+        font-size: 18px;
+        cursor: grab;
+        user-select: none;
+        flex-shrink: 0;
+        width: 20px;
+        text-align: center;
+      }
+
+      .app-icon-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(58, 58, 62, 0.9);
+        overflow: hidden;
+        flex-shrink: 0;
+        font-size: 20px;
+      }
+      .app-icon-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .app-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .app-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .app-url {
+        font-size: 11px;
+        color: #777;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .app-toggle {
+        flex-shrink: 0;
+      }
+      .app-toggle input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #3b82f6;
+      }
+
+      .app-actions {
+        flex-shrink: 0;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .status {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #10b981;
+        min-height: 20px;
+      }
+      .status.error {
+        color: #ef4444;
+      }
+
+      .actions-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 20px;
+      }
+
+      /* Dock preview */
+      .dock-preview {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 20px;
+        background: rgba(30, 30, 32, 0.55);
+        backdrop-filter: blur(60px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 22px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        margin: 20px auto;
+        width: fit-content;
+      }
+      .dock-preview-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(58, 58, 62, 0.9);
+        overflow: hidden;
+        font-size: 22px;
+        transition: transform 0.15s ease;
+      }
+      .dock-preview-icon:hover {
+        transform: scale(1.3);
+      }
+      .dock-preview-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>App Dock Configuration</h1>
+    <p class="subtitle">Discover installed webapps, arrange their order, and customize the dock.</p>
+
+    <div class="section">
+      <div class="section-title">Webapps</div>
+      <button class="btn btn-primary" id="discover-btn" onclick="discover()">Discover Installed Webapps</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Dock Apps (drag to reorder)</div>
+      <ul class="app-list" id="app-list"></ul>
+      <div class="empty-state" id="empty-state" style="display: none">No apps yet. Click Discover above.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Preview</div>
+      <div class="dock-preview" id="dock-preview"></div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-save" onclick="save()">Save Configuration</button>
+    </div>
+
+    <script>
+      let apps = []
+
+      async function loadCurrent() {
+        try {
+          const res = await fetch('/plugins/signalk-app-dock/config')
+          if (res.ok) {
+            const data = await res.json()
+            apps = (data.configuration && data.configuration.apps) || []
+            render()
+          }
+        } catch (e) {
+          console.warn('Could not load current config', e)
+        }
+      }
+
+      async function discover() {
+        const btn = document.getElementById('discover-btn')
+        const status = document.getElementById('status')
+        btn.disabled = true
+        btn.textContent = 'Discovering...'
+        status.textContent = ''
+        status.className = 'status'
+
+        try {
+          const res = await fetch('/skServer/webapps')
+          const allWebapps = await res.json()
+          const webapps = allWebapps
+            .filter((w) => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
+            .map((w) => ({
+              name: w.name,
+              label: w.signalk?.displayName || w.name,
+              url: `/${w.name}/`,
+              icon: w.signalk?.appIcon ? `/${w.name}/${w.signalk.appIcon}` : null
+            }))
+
+          if (webapps.length === 0) {
+            status.textContent = 'No webapps found. Is the server fully started?'
+            status.className = 'status error'
+            btn.disabled = false
+            btn.textContent = 'Discover Installed Webapps'
+            return
+          }
+
+          const existingUrls = new Set(apps.map((a) => a.url))
+          let added = 0
+          for (const w of webapps) {
+            if (!existingUrls.has(w.url)) {
+              apps.push({
+                enabled: true,
+                url: w.url,
+                label: w.label || '',
+                icon: w.icon || '',
+                color: ''
+              })
+              added++
+            }
+          }
+
+          status.textContent =
+            added > 0
+              ? `Found ${webapps.length} webapps, added ${added} new.`
+              : `All ${webapps.length} webapps already in list.`
+          render()
+        } catch (e) {
+          status.textContent = 'Discovery failed: ' + e.message
           status.className = 'status error'
-          btn.disabled = false
-          btn.textContent = 'Discover Installed Webapps'
+        }
+
+        btn.disabled = false
+        btn.textContent = 'Discover Installed Webapps'
+      }
+
+      async function save() {
+        const status = document.getElementById('status')
+        try {
+          const cfgRes = await fetch('/plugins/signalk-app-dock/config')
+          const current = await cfgRes.json()
+          const newConfig = {
+            ...current,
+            configuration: {
+              ...(current.configuration || {}),
+              apps: apps
+            }
+          }
+
+          const res = await fetch('/plugins/signalk-app-dock/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newConfig)
+          })
+
+          if (res.ok) {
+            status.textContent = 'Saved! Plugin will restart with new config.'
+            status.className = 'status'
+          } else {
+            status.textContent = 'Save failed: ' + res.statusText
+            status.className = 'status error'
+          }
+        } catch (e) {
+          status.textContent = 'Save failed: ' + e.message
+          status.className = 'status error'
+        }
+      }
+
+      function removeApp(index) {
+        apps.splice(index, 1)
+        render()
+      }
+
+      function toggleApp(index) {
+        apps[index].enabled = !apps[index].enabled
+        render()
+      }
+
+      function renderIcon(app) {
+        const iconVal = app.icon || ''
+        if (iconVal.startsWith('/') || iconVal.startsWith('http')) {
+          return `<img src="${iconVal}" alt="${app.label}" onerror="this.parentNode.textContent='${(app.label || app.url || '??').slice(0, 2).toUpperCase()}'">`
+        }
+        return iconVal || (app.label || app.url || '??').slice(0, 2).toUpperCase()
+      }
+
+      function render() {
+        const list = document.getElementById('app-list')
+        const empty = document.getElementById('empty-state')
+        const preview = document.getElementById('dock-preview')
+
+        if (apps.length === 0) {
+          list.innerHTML = ''
+          empty.style.display = ''
+          preview.innerHTML = '<span style="color:#555;font-size:13px">No apps</span>'
           return
         }
 
-        const existingUrls = new Set(apps.map(a => a.url))
-        let added = 0
-        for (const w of webapps) {
-          if (!existingUrls.has(w.url)) {
-            apps.push({
-              enabled: true,
-              url: w.url,
-              label: w.label || '',
-              icon: w.icon || '',
-              color: ''
-            })
-            added++
-          }
-        }
+        empty.style.display = 'none'
 
-        status.textContent = added > 0
-          ? `Found ${webapps.length} webapps, added ${added} new.`
-          : `All ${webapps.length} webapps already in list.`
-        render()
-      } catch (e) {
-        status.textContent = 'Discovery failed: ' + e.message
-        status.className = 'status error'
-      }
-
-      btn.disabled = false
-      btn.textContent = 'Discover Installed Webapps'
-    }
-
-    async function save () {
-      const status = document.getElementById('status')
-      try {
-        const cfgRes = await fetch('/plugins/signalk-app-dock/config')
-        const current = await cfgRes.json()
-        const newConfig = {
-          ...current,
-          configuration: {
-            ...(current.configuration || {}),
-            apps: apps
-          }
-        }
-
-        const res = await fetch('/plugins/signalk-app-dock/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newConfig)
-        })
-
-        if (res.ok) {
-          status.textContent = 'Saved! Plugin will restart with new config.'
-          status.className = 'status'
-        } else {
-          status.textContent = 'Save failed: ' + res.statusText
-          status.className = 'status error'
-        }
-      } catch (e) {
-        status.textContent = 'Save failed: ' + e.message
-        status.className = 'status error'
-      }
-    }
-
-    function removeApp (index) {
-      apps.splice(index, 1)
-      render()
-    }
-
-    function toggleApp (index) {
-      apps[index].enabled = !apps[index].enabled
-      render()
-    }
-
-    function renderIcon (app) {
-      const iconVal = app.icon || ''
-      if (iconVal.startsWith('/') || iconVal.startsWith('http')) {
-        return `<img src="${iconVal}" alt="${app.label}" onerror="this.parentNode.textContent='${(app.label || app.url || '??').slice(0,2).toUpperCase()}'">`
-      }
-      return iconVal || (app.label || app.url || '??').slice(0, 2).toUpperCase()
-    }
-
-    function render () {
-      const list = document.getElementById('app-list')
-      const empty = document.getElementById('empty-state')
-      const preview = document.getElementById('dock-preview')
-
-      if (apps.length === 0) {
-        list.innerHTML = ''
-        empty.style.display = ''
-        preview.innerHTML = '<span style="color:#555;font-size:13px">No apps</span>'
-        return
-      }
-
-      empty.style.display = 'none'
-
-      list.innerHTML = apps.map((app, i) => `
+        list.innerHTML = apps
+          .map(
+            (app, i) => `
         <li class="app-item" draggable="true" data-index="${i}" style="opacity:${app.enabled === false ? 0.4 : 1}">
           <span class="drag-handle">\u2261</span>
           <div class="app-icon-preview" ${app.color ? `style="background:${app.color}"` : ''}>
@@ -305,53 +412,58 @@
             <button class="btn btn-danger" onclick="removeApp(${i})">Remove</button>
           </div>
         </li>
-      `).join('')
+      `
+          )
+          .join('')
 
-      initDragDrop()
+        initDragDrop()
 
-      preview.innerHTML = apps
-        .filter(a => a.enabled !== false)
-        .map(app => `
+        preview.innerHTML = apps
+          .filter((a) => a.enabled !== false)
+          .map(
+            (app) => `
           <div class="dock-preview-icon" ${app.color ? `style="background:${app.color}"` : ''}>
             ${renderIcon(app)}
           </div>
-        `).join('')
-    }
+        `
+          )
+          .join('')
+      }
 
-    let dragIndex = null
-    function initDragDrop () {
-      const items = document.querySelectorAll('.app-item')
-      items.forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-          dragIndex = parseInt(item.dataset.index)
-          item.classList.add('dragging')
-          e.dataTransfer.effectAllowed = 'move'
+      let dragIndex = null
+      function initDragDrop() {
+        const items = document.querySelectorAll('.app-item')
+        items.forEach((item) => {
+          item.addEventListener('dragstart', (e) => {
+            dragIndex = parseInt(item.dataset.index)
+            item.classList.add('dragging')
+            e.dataTransfer.effectAllowed = 'move'
+          })
+          item.addEventListener('dragend', () => {
+            item.classList.remove('dragging')
+            document.querySelectorAll('.app-item').forEach((el) => el.classList.remove('drag-over'))
+          })
+          item.addEventListener('dragover', (e) => {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'move'
+            item.classList.add('drag-over')
+          })
+          item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over')
+          })
+          item.addEventListener('drop', (e) => {
+            e.preventDefault()
+            const dropIndex = parseInt(item.dataset.index)
+            if (dragIndex !== null && dragIndex !== dropIndex) {
+              const moved = apps.splice(dragIndex, 1)[0]
+              apps.splice(dropIndex, 0, moved)
+              render()
+            }
+          })
         })
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging')
-          document.querySelectorAll('.app-item').forEach(el => el.classList.remove('drag-over'))
-        })
-        item.addEventListener('dragover', (e) => {
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'move'
-          item.classList.add('drag-over')
-        })
-        item.addEventListener('dragleave', () => {
-          item.classList.remove('drag-over')
-        })
-        item.addEventListener('drop', (e) => {
-          e.preventDefault()
-          const dropIndex = parseInt(item.dataset.index)
-          if (dragIndex !== null && dragIndex !== dropIndex) {
-            const moved = apps.splice(dragIndex, 1)[0]
-            apps.splice(dropIndex, 0, moved)
-            render()
-          }
-        })
-      })
-    }
+      }
 
-    loadCurrent()
-  </script>
-</body>
+      loadCurrent()
+    </script>
+  </body>
 </html>

@@ -1,39 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>SK Dock</title>
-  <link rel="stylesheet" href="dock.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>SK Dock</title>
+    <link rel="stylesheet" href="dock.css" />
+  </head>
+  <body>
+    <!-- Full-screen iframe container: only the active iframe is visible -->
+    <div id="iframe-container"></div>
 
-  <!-- Full-screen iframe container: only the active iframe is visible -->
-  <div id="iframe-container"></div>
+    <!-- Idle hint shown before any app is opened -->
+    <div id="idle-hint">
+      <span id="idle-hint-text"></span>
+    </div>
 
-  <!-- Idle hint shown before any app is opened -->
-  <div id="idle-hint">
-    <span id="idle-hint-text"></span>
-  </div>
+    <!-- Dimming overlay shown when dock is open; tap to close -->
+    <div id="dock-backdrop"></div>
 
-  <!-- Dimming overlay shown when dock is open; tap to close -->
-  <div id="dock-backdrop"></div>
+    <!-- The dock itself - slides in from the configured edge -->
+    <nav id="dock" role="navigation" aria-label="App dock">
+      <div id="dock-inner"></div>
+    </nav>
 
-  <!-- The dock itself - slides in from the configured edge -->
-  <nav id="dock" role="navigation" aria-label="App dock">
-    <div id="dock-inner"></div>
-  </nav>
+    <!-- Invisible corner hot-zone for long-press trigger -->
+    <div id="trigger-corner" aria-hidden="true"></div>
 
-  <!-- Invisible corner hot-zone for long-press trigger -->
-  <div id="trigger-corner" aria-hidden="true"></div>
+    <!-- Loading indicator shown while an iframe is loading for the first time -->
+    <div id="loading-overlay" aria-hidden="true">
+      <div class="spinner"></div>
+      <span id="loading-label"></span>
+    </div>
 
-  <!-- Loading indicator shown while an iframe is loading for the first time -->
-  <div id="loading-overlay" aria-hidden="true">
-    <div class="spinner"></div>
-    <span id="loading-label"></span>
-  </div>
-
-  <script src="dock.js"></script>
-</body>
+    <script src="dock.js"></script>
+  </body>
 </html>
