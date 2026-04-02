@@ -405,8 +405,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
                   ...S.toggle,
                   cursor: 'pointer',
                   fontSize: 16,
-                  opacity: app.autostart ? 1 : 0.25,
-                  title: 'Autostart'
+                  opacity: app.autostart ? 1 : 0.25
                 }}
                 onClick={() => toggleAutostart(i)}
                 title={app.autostart ? 'Autostart: ON (click to disable)' : 'Click to set as autostart app'}
