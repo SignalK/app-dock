@@ -1,5 +1,5 @@
 {
-  "name": "signalk-app-dock",
+  "name": "@signalk/app-dock",
   "version": "0.1.0",
   "description": "macOS-style configurable app dock for switching between SignalK webapps on touch screens",
   "keywords": [
