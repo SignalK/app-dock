@@ -217,14 +217,14 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       const res = await fetch('/skServer/webapps')
       const allWebapps = await res.json()
       const webapps = allWebapps
-        .filter((w) => w.name !== 'signalk-app-dock')
+        .filter((w) => w.name !== '@signalk/app-dock')
         .map((w) => {
           if (w.name === '@signalk/server-admin-ui') {
             return {
               name: w.name,
               label: 'Settings',
               url: '/admin/',
-              icon: '/signalk-app-dock/icon-settings.svg',
+              icon: '/@signalk/app-dock/icon-settings.svg',
               isAdmin: true
             }
           }

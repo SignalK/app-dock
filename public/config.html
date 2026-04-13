@@ -284,7 +284,7 @@
           const res = await fetch('/skServer/webapps')
           const allWebapps = await res.json()
           const webapps = allWebapps
-            .filter((w) => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
+            .filter((w) => w.name !== '@signalk/app-dock' && w.name !== '@signalk/server-admin-ui')
             .map((w) => ({
               name: w.name,
               label: w.signalk?.displayName || w.name,

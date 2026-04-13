@@ -26,7 +26,7 @@ const MOCK_WEBAPPS = [
     signalk: { displayName: 'KIP Instrument MFD', appIcon: 'assets/icon-72x72.png' }
   },
   {
-    name: 'signalk-app-dock',
+    name: '@signalk/app-dock',
     signalk: { displayName: 'App Dock' }
   },
   {
@@ -77,7 +77,7 @@ describe('schema', () => {
 })
 
 describe('webapp discovery', () => {
-  it('filters out signalk-app-dock and admin-ui from /webapps', (t, done) => {
+  it('filters out @signalk/app-dock and admin-ui from /webapps', (t, done) => {
     const app = createMockApp(MOCK_WEBAPPS)
     const plugin = pluginFactory(app)
     const routes = {}
@@ -91,7 +91,7 @@ describe('webapp discovery', () => {
     const res = {
       json: (data) => {
         assert.equal(data.length, 2)
-        assert.ok(data.every((w) => w.name !== 'signalk-app-dock'))
+        assert.ok(data.every((w) => w.name !== '@signalk/app-dock'))
         assert.ok(data.every((w) => w.name !== '@signalk/server-admin-ui'))
         done()
       }

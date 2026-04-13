@@ -6,7 +6,7 @@ module.exports = (app) => {
 
   function getWebapps() {
     return (app.webapps || [])
-      .filter((w) => w.name !== 'signalk-app-dock' && w.name !== '@signalk/server-admin-ui')
+      .filter((w) => w.name !== '@signalk/app-dock' && w.name !== '@signalk/server-admin-ui')
       .map((w) => ({
         name: w.name,
         label: w.signalk?.displayName || w.name,
@@ -85,7 +85,7 @@ module.exports = (app) => {
     schema: {
       type: 'object',
       description:
-        'Open /signalk-app-dock/config.html for the visual configurator with discover button and drag-to-reorder.',
+        'Open /@signalk/app-dock/config.html for the visual configurator with discover button and drag-to-reorder.',
       required: [],
       properties: {
         position: {

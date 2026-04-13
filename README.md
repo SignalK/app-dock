@@ -1,8 +1,8 @@
-# signalk-app-dock
+# @signalk/app-dock
 
 A macOS-style app dock for switching between Signal K webapps on touch screens.
 
-![CI](https://github.com/dirkwa/signalk-app-dock/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/SignalK/app-dock/actions/workflows/ci.yml/badge.svg)
 
 ## Features
 
@@ -20,12 +20,12 @@ A macOS-style app dock for switching between Signal K webapps on touch screens.
 
 ```bash
 cd ~/.signalk
-npm install signalk-app-dock
+npm install @signalk/app-dock
 ```
 
 Restart Signal K, enable in **Plugin Config > App Dock**, click **Discover Installed Webapps**.
 
-Open: `http://your-sk-server:3000/signalk-app-dock/`
+Open: `http://your-sk-server:3000/@signalk/app-dock/`
 
 ## Usage
 
@@ -58,7 +58,7 @@ Open **Plugin Config > App Dock** in the admin UI. The embedded configurator pro
 
 ```bash
 cd ~/.signalk
-npm link /path/to/signalk-app-dock
+npm link /path/to/app-dock
 ```
 
 Edit files in `public/`, reload the browser. No build step needed for the dock itself.

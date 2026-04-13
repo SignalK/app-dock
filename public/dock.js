@@ -72,7 +72,7 @@
       fetch('/skServer/webapps')
         .then((r) => r.json())
         .then((apps) => {
-          const me = apps.find((a) => a.name === 'signalk-app-dock')
+          const me = apps.find((a) => a.name === '@signalk/app-dock')
           if (me) $version.textContent = 'v' + me.version
         })
         .catch(() => {})
