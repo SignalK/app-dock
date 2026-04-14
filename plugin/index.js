@@ -1,5 +1,32 @@
 'use strict'
 
+const DEFAULT_APPS = [
+  {
+    enabled: true,
+    autostart: true,
+    url: '/@signalk/freeboard-sk/',
+    label: 'Freeboard-SK',
+    icon: '/@signalk/freeboard-sk/assets/icons/icon-72x72.png',
+    color: ''
+  },
+  {
+    enabled: true,
+    autostart: false,
+    url: '/@mxtommy/kip/',
+    label: 'KIP',
+    icon: '/@mxtommy/kip/assets/icon-72x72.png',
+    color: ''
+  },
+  {
+    enabled: true,
+    autostart: false,
+    url: '/admin/',
+    label: 'Settings',
+    icon: '/@signalk/app-dock/icon-settings.svg',
+    color: '#78788c'
+  }
+]
+
 module.exports = (app) => {
   let pluginSettings = {}
   let resolvedApps = []
@@ -20,6 +47,22 @@ module.exports = (app) => {
     name: 'App Dock',
 
     start(settings) {
+      if (!Array.isArray(settings.apps)) {
+        const seeded = DEFAULT_APPS.map((a) => ({ ...a }))
+        const seededSettings = {
+          showNightModeButton: true,
+          showExitButton: false,
+          ...settings,
+          apps: seeded
+        }
+        app.debug('App Dock: first run, seeding %d default apps', seeded.length)
+        app.savePluginOptions(seededSettings, (err) => {
+          if (err) app.error('App Dock: failed to save default apps: ' + err.message)
+          else app.debug('App Dock: saved default apps to config')
+        })
+        settings = seededSettings
+      }
+
       pluginSettings = settings
 
       if (settings.showNightModeButton) {
@@ -39,49 +82,17 @@ module.exports = (app) => {
         )
       }
 
-      setTimeout(() => {
-        const discovered = getWebapps()
-        if (discovered.length === 0) return
+      resolvedApps = (settings.apps || [])
+        .filter((a) => a.enabled !== false)
+        .map((a) => ({
+          label: a.label || a.url,
+          url: a.url,
+          icon: a.icon || null,
+          color: a.color || null,
+          autostart: a.autostart || false
+        }))
 
-        const configured = settings.apps || []
-        const configuredUrls = new Set(configured.map((a) => a.url))
-
-        const merged = [...configured]
-        let added = false
-        for (const w of discovered) {
-          if (!configuredUrls.has(w.url)) {
-            merged.push({ enabled: true, url: w.url, label: '', icon: '', color: '' })
-            added = true
-          }
-        }
-
-        const discoveredByUrl = {}
-        discovered.forEach((d) => {
-          discoveredByUrl[d.url] = d
-        })
-
-        resolvedApps = merged
-          .filter((a) => a.enabled !== false)
-          .map((a) => {
-            const match = discoveredByUrl[a.url]
-            return {
-              label: a.label || (match && match.label) || a.url,
-              url: a.url,
-              icon: a.icon || (match && match.icon) || null,
-              color: a.color || null,
-              autostart: a.autostart || false
-            }
-          })
-
-        if (added) {
-          app.savePluginOptions({ ...settings, apps: merged }, (err) => {
-            if (err) app.error('Failed to save discovered apps: ' + err.message)
-            else app.debug('Auto-discovered new webapps, saved to config')
-          })
-        }
-
-        app.debug('Dock apps: %s', resolvedApps.map((a) => a.label).join(', '))
-      }, 5000)
+      app.debug('App Dock: resolved %d apps: %s', resolvedApps.length, resolvedApps.map((a) => a.label).join(', '))
     },
 
     stop() {},
@@ -101,6 +112,19 @@ module.exports = (app) => {
       router.get('/mode', (req, res) => {
         const current = app.getSelfPath('environment.mode')
         res.json({ value: (current && current.value) || 'day' })
+      })
+
+      router.post('/dismiss-tour', (req, res) => {
+        const updated = { ...pluginSettings, tourDismissed: true }
+        app.savePluginOptions(updated, (err) => {
+          if (err) {
+            app.error('App Dock: failed to save tourDismissed: ' + err.message)
+            res.status(500).json({ error: err.message })
+            return
+          }
+          pluginSettings = updated
+          res.json({ tourDismissed: true })
+        })
       })
     },
 
@@ -157,13 +181,21 @@ module.exports = (app) => {
           type: 'boolean',
           title: 'Show night/day mode toggle',
           description: 'Adds a sun/moon button to the dock that toggles environment.mode',
-          default: false
+          default: true
         },
 
         showExitButton: {
           type: 'boolean',
           title: 'Show exit button',
           description: 'Adds an X button to the dock that returns to Signal K admin UI',
+          default: false
+        },
+
+        tourDismissed: {
+          type: 'boolean',
+          title: 'Welcome tour dismissed',
+          description:
+            'Set automatically when a user clicks "Don\'t show again" in the welcome tour. Uncheck to show the tour again on all devices.',
           default: false
         },
 

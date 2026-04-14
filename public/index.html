@@ -36,6 +36,29 @@
       <span id="loading-label"></span>
     </div>
 
+    <!-- First-run welcome tour -->
+    <div id="tour-overlay" aria-hidden="true">
+      <div id="tour-card" role="dialog" aria-labelledby="tour-title">
+        <div id="tour-title">Welcome to App Dock</div>
+        <div id="tour-body">
+          <p>App Dock gives you a macOS-style dock to quickly switch between Signal K webapps on touch screens.</p>
+          <p>
+            <strong>Double-tap the bottom-right corner</strong> of the screen to open the dock, then tap an icon to
+            launch that app.
+          </p>
+          <p>
+            Freeboard-SK is loading in the background and KIP is one tap away. Customize the apps, dock position, and
+            more in
+            <a id="tour-link" href="#">Plugin Config</a>.
+          </p>
+        </div>
+        <div id="tour-buttons">
+          <button id="tour-btn-got-it" class="tour-btn tour-btn-primary">Got it</button>
+          <button id="tour-btn-dismiss" class="tour-btn tour-btn-dismiss">Don't show again</button>
+        </div>
+      </div>
+    </div>
+
     <script src="dock.js"></script>
   </body>
 </html>
