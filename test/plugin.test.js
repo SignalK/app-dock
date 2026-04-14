@@ -78,11 +78,11 @@ describe('schema', () => {
     assert.deepEqual(items.required, ['url'])
   })
 
-  it('defines showNightModeButton with default false', () => {
+  it('defines showNightModeButton with default true', () => {
     const plugin = pluginFactory(createMockApp())
     const prop = plugin.schema.properties.showNightModeButton
     assert.equal(prop.type, 'boolean')
-    assert.equal(prop.default, false)
+    assert.equal(prop.default, true)
   })
 
   it('defines showExitButton with default false', () => {
@@ -90,6 +90,11 @@ describe('schema', () => {
     const prop = plugin.schema.properties.showExitButton
     assert.equal(prop.type, 'boolean')
     assert.equal(prop.default, false)
+  })
+
+  it('triggerCorner defaults to bottom-right', () => {
+    const plugin = pluginFactory(createMockApp())
+    assert.equal(plugin.schema.properties.triggerCorner.default, 'bottom-right')
   })
 })
 
@@ -209,9 +214,9 @@ describe('settings endpoint', () => {
   })
 })
 
-describe('auto-discovery on start', () => {
-  it('merges discovered webapps into configured apps after delay', (t, done) => {
-    const app = createMockApp(MOCK_WEBAPPS)
+describe('default apps seeding', () => {
+  it('seeds default apps when config has no apps key', () => {
+    const app = createMockApp()
     let savedOptions = null
     app.savePluginOptions = (opts, cb) => {
       savedOptions = opts
@@ -219,73 +224,46 @@ describe('auto-discovery on start', () => {
     }
 
     const plugin = pluginFactory(app)
-
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = (fn) => fn()
-    try {
-      plugin.start({ apps: [] })
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
-    }
+    plugin.start({})
 
     assert.ok(savedOptions)
-    assert.ok(savedOptions.apps.length >= 2)
-    assert.ok(savedOptions.apps.some((a) => a.url === '/@signalk/freeboard-sk/'))
-    assert.ok(savedOptions.apps.some((a) => a.url === '/@mxtommy/kip/'))
-    done()
+    assert.equal(savedOptions.apps[0].url, '/@signalk/freeboard-sk/')
+    assert.equal(savedOptions.apps[0].autostart, true)
+    assert.equal(savedOptions.apps[1].url, '/@mxtommy/kip/')
+    assert.equal(savedOptions.apps[1].autostart, false)
+    assert.equal(savedOptions.apps[2].url, '/admin/')
+    assert.equal(savedOptions.apps[2].label, 'Settings')
   })
 
-  it('does not duplicate already-configured apps', (t, done) => {
-    const app = createMockApp(MOCK_WEBAPPS)
-    let savedOptions = null
-    app.savePluginOptions = (opts, cb) => {
-      savedOptions = opts
-      cb(null)
-    }
-
-    const plugin = pluginFactory(app)
-    const existing = [{ enabled: true, url: '/@signalk/freeboard-sk/', label: 'FB', icon: '', color: '' }]
-
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = (fn) => fn()
-    try {
-      plugin.start({ apps: existing })
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
-    }
-
-    const fbEntries = savedOptions.apps.filter((a) => a.url === '/@signalk/freeboard-sk/')
-    assert.equal(fbEntries.length, 1)
-    assert.equal(fbEntries[0].label, 'FB')
-    done()
-  })
-
-  it('skips save when no new apps are discovered', () => {
-    const app = createMockApp(MOCK_WEBAPPS)
+  it('does not seed when apps array already exists (even if empty)', () => {
+    const app = createMockApp()
     let saveCalled = false
     app.savePluginOptions = () => {
       saveCalled = true
     }
 
     const plugin = pluginFactory(app)
-    const allConfigured = [
-      { enabled: true, url: '/@signalk/freeboard-sk/', label: '', icon: '', color: '' },
-      { enabled: true, url: '/@mxtommy/kip/', label: '', icon: '', color: '' }
-    ]
+    plugin.start({ apps: [] })
 
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = (fn) => fn()
-    try {
-      plugin.start({ apps: allConfigured })
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
+    assert.equal(saveCalled, false)
+  })
+
+  it('preserves existing configured apps', () => {
+    const app = createMockApp()
+    let saveCalled = false
+    app.savePluginOptions = () => {
+      saveCalled = true
     }
+
+    const plugin = pluginFactory(app)
+    const existing = [{ enabled: true, url: '/custom-app/', label: 'Custom', icon: '', color: '' }]
+    plugin.start({ apps: existing })
 
     assert.equal(saveCalled, false)
   })
 
   it('respects enabled:false when resolving apps', () => {
-    const app = createMockApp(MOCK_WEBAPPS)
+    const app = createMockApp()
     app.savePluginOptions = (_, cb) => cb(null)
     const plugin = pluginFactory(app)
 
@@ -293,14 +271,7 @@ describe('auto-discovery on start', () => {
       { enabled: false, url: '/@signalk/freeboard-sk/', label: '', icon: '', color: '' },
       { enabled: true, url: '/@mxtommy/kip/', label: '', icon: '', color: '' }
     ]
-
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = (fn) => fn()
-    try {
-      plugin.start({ apps: configured })
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
-    }
+    plugin.start({ apps: configured })
 
     const routes = {}
     const router = {
@@ -321,43 +292,6 @@ describe('auto-discovery on start', () => {
     )
     assert.ok(!resolved.apps.some((a) => a.url === '/@signalk/freeboard-sk/'))
     assert.ok(resolved.apps.some((a) => a.url === '/@mxtommy/kip/'))
-  })
-
-  it('uses discovered label/icon when config overrides are empty', () => {
-    const app = createMockApp(MOCK_WEBAPPS)
-    app.savePluginOptions = (_, cb) => cb(null)
-    const plugin = pluginFactory(app)
-
-    const configured = [{ enabled: true, url: '/@mxtommy/kip/', label: '', icon: '', color: '' }]
-
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = (fn) => fn()
-    try {
-      plugin.start({ apps: configured })
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
-    }
-
-    const routes = {}
-    const router = {
-      get: (path, handler) => {
-        routes[path] = handler
-      }
-    }
-    plugin.registerWithRouter(router)
-
-    let resolved
-    routes['/settings'](
-      {},
-      {
-        json: (d) => {
-          resolved = d
-        }
-      }
-    )
-    const kip = resolved.apps.find((a) => a.url === '/@mxtommy/kip/')
-    assert.equal(kip.label, 'KIP Instrument MFD')
-    assert.equal(kip.icon, '/@mxtommy/kip/assets/icon-72x72.png')
   })
 })
 

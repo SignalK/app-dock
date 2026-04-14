@@ -186,6 +186,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const [status, setStatus] = useState('')
   const [statusError, setStatusError] = useState(false)
   const [discovering, setDiscovering] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
 
@@ -216,10 +217,24 @@ export default function PluginConfigurationPanel({ configuration, save }) {
     ]
   )
 
-  const doSave = useCallback(() => {
-    save(buildConfig(apps))
-    setStatus('Saved!')
+  const doSave = useCallback(async () => {
+    setSaving(true)
+    setStatus('Saving\u2026')
     setStatusError(false)
+    try {
+      const result = save(buildConfig(apps))
+      if (result && typeof result.then === 'function') {
+        await result
+      }
+      setStatus('Configuration saved \u2014 plugin will restart')
+      setStatusError(false)
+      setTimeout(() => setStatus(''), 5000)
+    } catch (e) {
+      setStatus('Save failed: ' + (e.message || e))
+      setStatusError(true)
+    } finally {
+      setSaving(false)
+    }
   }, [apps, buildConfig, save])
 
   const discover = async () => {
@@ -498,9 +513,14 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       )}
 
       <div style={S.actions}>
-        <button style={{ ...S.btn, ...S.btnSave }} onClick={doSave}>
-          Save Configuration
+        <button
+          style={{ ...S.btn, ...S.btnSave, ...(saving ? { opacity: 0.6 } : {}) }}
+          onClick={doSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving\u2026' : 'Save Configuration'}
         </button>
+        {status && <div style={{ ...S.status, color: statusError ? '#ef4444' : '#10b981' }}>{status}</div>}
       </div>
     </div>
   )

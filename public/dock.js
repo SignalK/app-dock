@@ -420,6 +420,7 @@
 
   function hideDock() {
     if (!dockVisible) return
+    if ($tourOverlay && $tourOverlay.classList.contains('visible')) return
     dockVisible = false
     $dock.classList.remove('visible')
     $backdrop.classList.remove('visible')
@@ -560,6 +561,88 @@
     fetchCurrentMode()
     setInterval(fetchCurrentMode, 5000)
   }
+
+  async function refreshConfig() {
+    try {
+      const [configRes, settingsRes] = await Promise.all([
+        fetch('/plugins/signalk-app-dock/config'),
+        fetch('/plugins/signalk-app-dock/settings')
+      ])
+      const prev = JSON.stringify(cfg)
+      if (configRes.ok) {
+        const data = await configRes.json()
+        const pluginCfg = data.configuration || data
+        cfg = { ...DEFAULTS, ...pluginCfg }
+      }
+      if (settingsRes.ok) {
+        const data = await settingsRes.json()
+        if (Array.isArray(data.apps) && data.apps.length > 0) {
+          cfg.apps = data.apps
+        }
+      }
+      if (JSON.stringify(cfg) !== prev) {
+        buildDock()
+      }
+    } catch {
+      // ignore transient errors (e.g. during plugin restart)
+    }
+  }
+
+  setInterval(refreshConfig, 5000)
+
+  // ─── Welcome tour ────────────────────────────────────────────────────────────
+  const TOUR_DISMISSED_KEY = 'app-dock-tour-dismissed'
+  const $tourOverlay = document.getElementById('tour-overlay')
+  const $tourGotIt = document.getElementById('tour-btn-got-it')
+  const $tourDismiss = document.getElementById('tour-btn-dismiss')
+
+  function hideTour() {
+    $tourOverlay.classList.remove('visible')
+    hideDock()
+  }
+
+  function showTour() {
+    $tourOverlay.classList.add('visible')
+    showDock()
+  }
+
+  $tourGotIt.addEventListener('click', hideTour)
+  $tourDismiss.addEventListener('click', () => {
+    try {
+      localStorage.setItem(TOUR_DISMISSED_KEY, '1')
+    } catch {
+      // localStorage may be unavailable (private mode); ignore
+    }
+    hideTour()
+  })
+
+  const $tourLink = document.getElementById('tour-link')
+  if ($tourLink) {
+    $tourLink.addEventListener('click', (e) => {
+      e.preventDefault()
+      const adminUrl = '/admin/#/serverConfiguration/plugins/signalk-app-dock'
+      hideIdleHint()
+      const $frame = document.createElement('iframe')
+      $frame.allow = 'fullscreen; geolocation'
+      $frame.sandbox = 'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock'
+      $frame.style.touchAction = 'auto'
+      $frame.classList.add('active')
+      $iframeContainer.innerHTML = ''
+      Object.keys(iframes).forEach((k) => delete iframes[k])
+      $iframeContainer.appendChild($frame)
+      $frame.src = adminUrl
+      iframes[adminUrl] = $frame
+      hideTour()
+    })
+  }
+
+  let tourDismissed = false
+  try {
+    tourDismissed = localStorage.getItem(TOUR_DISMISSED_KEY) === '1'
+  } catch {
+    // localStorage unavailable; show tour
+  }
+  if (!tourDismissed) showTour()
 
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
   if (autostartIdx >= 0) {
