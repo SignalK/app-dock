@@ -96,6 +96,13 @@ describe('schema', () => {
     const plugin = pluginFactory(createMockApp())
     assert.equal(plugin.schema.properties.triggerCorner.default, 'bottom-right')
   })
+
+  it('defines tourDismissed with default false', () => {
+    const plugin = pluginFactory(createMockApp())
+    const prop = plugin.schema.properties.tourDismissed
+    assert.equal(prop.type, 'boolean')
+    assert.equal(prop.default, false)
+  })
 })
 
 describe('webapp discovery', () => {
@@ -106,7 +113,8 @@ describe('webapp discovery', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -128,7 +136,8 @@ describe('webapp discovery', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -151,7 +160,8 @@ describe('webapp discovery', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -174,7 +184,8 @@ describe('webapp discovery', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -198,7 +209,8 @@ describe('settings endpoint', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -277,7 +289,8 @@ describe('default apps seeding', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -404,6 +417,40 @@ describe('night mode PUT handler', () => {
   })
 })
 
+describe('dismiss-tour endpoint', () => {
+  it('saves tourDismissed: true and responds', (t, done) => {
+    const app = createMockApp()
+    let saved = null
+    app.savePluginOptions = (opts, cb) => {
+      saved = opts
+      cb(null)
+    }
+    const plugin = pluginFactory(app)
+    plugin.start({ apps: [], position: 'left' })
+
+    const routes = { get: {}, post: {} }
+    const router = {
+      get: (path, handler) => {
+        routes.get[path] = handler
+      },
+      post: (path, handler) => {
+        routes.post[path] = handler
+      }
+    }
+    plugin.registerWithRouter(router)
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.tourDismissed, true)
+        assert.equal(saved.tourDismissed, true)
+        assert.equal(saved.position, 'left')
+        done()
+      }
+    }
+    routes.post['/dismiss-tour']({}, res)
+  })
+})
+
 describe('mode endpoint', () => {
   it('returns day when no mode is set', (t, done) => {
     const app = createMockApp()
@@ -412,7 +459,8 @@ describe('mode endpoint', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 
@@ -436,7 +484,8 @@ describe('mode endpoint', () => {
     const router = {
       get: (path, handler) => {
         routes[path] = handler
-      }
+      },
+      post: () => {}
     }
     plugin.registerWithRouter(router)
 

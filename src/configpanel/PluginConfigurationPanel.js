@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 
 const S = {
   root: {
@@ -193,6 +193,13 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const appsRef = useRef(apps)
   appsRef.current = apps
 
+  const statusTimeoutRef = useRef(null)
+  useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current)
+    }
+  }, [])
+
   const buildConfig = useCallback(
     (appsList) => ({
       position,
@@ -218,6 +225,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   )
 
   const doSave = useCallback(async () => {
+    if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current)
     setSaving(true)
     setStatus('Saving\u2026')
     setStatusError(false)
@@ -228,7 +236,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       }
       setStatus('Configuration saved \u2014 plugin will restart')
       setStatusError(false)
-      setTimeout(() => setStatus(''), 5000)
+      statusTimeoutRef.current = setTimeout(() => setStatus(''), 5000)
     } catch (e) {
       setStatus('Save failed: ' + (e.message || e))
       setStatusError(true)

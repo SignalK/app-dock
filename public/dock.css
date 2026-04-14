@@ -453,20 +453,21 @@ body {
   position: fixed;
   inset: 0;
   z-index: 30;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s ease;
   padding: 24px;
 }
 
 #tour-overlay.visible {
-  display: flex;
   opacity: 1;
+  pointer-events: auto;
 }
 
 #tour-card {

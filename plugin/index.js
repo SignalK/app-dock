@@ -113,6 +113,19 @@ module.exports = (app) => {
         const current = app.getSelfPath('environment.mode')
         res.json({ value: (current && current.value) || 'day' })
       })
+
+      router.post('/dismiss-tour', (req, res) => {
+        const updated = { ...pluginSettings, tourDismissed: true }
+        app.savePluginOptions(updated, (err) => {
+          if (err) {
+            app.error('App Dock: failed to save tourDismissed: ' + err.message)
+            res.status(500).json({ error: err.message })
+            return
+          }
+          pluginSettings = updated
+          res.json({ tourDismissed: true })
+        })
+      })
     },
 
     schema: {
@@ -175,6 +188,14 @@ module.exports = (app) => {
           type: 'boolean',
           title: 'Show exit button',
           description: 'Adds an X button to the dock that returns to Signal K admin UI',
+          default: false
+        },
+
+        tourDismissed: {
+          type: 'boolean',
+          title: 'Welcome tour dismissed',
+          description:
+            'Set automatically when a user clicks "Don\'t show again" in the welcome tour. Uncheck to show the tour again on all devices.',
           default: false
         },
 

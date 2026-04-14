@@ -591,7 +591,6 @@
   setInterval(refreshConfig, 5000)
 
   // ─── Welcome tour ────────────────────────────────────────────────────────────
-  const TOUR_DISMISSED_KEY = 'app-dock-tour-dismissed'
   const $tourOverlay = document.getElementById('tour-overlay')
   const $tourGotIt = document.getElementById('tour-btn-got-it')
   const $tourDismiss = document.getElementById('tour-btn-dismiss')
@@ -606,15 +605,17 @@
     showDock()
   }
 
-  $tourGotIt.addEventListener('click', hideTour)
-  $tourDismiss.addEventListener('click', () => {
-    try {
-      localStorage.setItem(TOUR_DISMISSED_KEY, '1')
-    } catch {
-      // localStorage may be unavailable (private mode); ignore
-    }
-    hideTour()
-  })
+  if ($tourGotIt) $tourGotIt.addEventListener('click', hideTour)
+  if ($tourDismiss) {
+    $tourDismiss.addEventListener('click', async () => {
+      hideTour()
+      try {
+        await fetch('/plugins/signalk-app-dock/dismiss-tour', { method: 'POST' })
+      } catch {
+        // ignore network errors; worst case user sees the tour again next reload
+      }
+    })
+  }
 
   const $tourLink = document.getElementById('tour-link')
   if ($tourLink) {
@@ -636,13 +637,7 @@
     })
   }
 
-  let tourDismissed = false
-  try {
-    tourDismissed = localStorage.getItem(TOUR_DISMISSED_KEY) === '1'
-  } catch {
-    // localStorage unavailable; show tour
-  }
-  if (!tourDismissed) showTour()
+  if (!cfg.tourDismissed) showTour()
 
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
   if (autostartIdx >= 0) {
