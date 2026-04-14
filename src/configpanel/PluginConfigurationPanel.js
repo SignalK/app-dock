@@ -180,6 +180,8 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const [iconSize, setIconSize] = useState(cfg.iconSize || 56)
   const [magnification, setMagnification] = useState(cfg.magnification !== false)
   const [magnificationScale, setMagnificationScale] = useState(cfg.magnificationScale || 1.7)
+  const [showNightModeButton, setShowNightModeButton] = useState(cfg.showNightModeButton || false)
+  const [showExitButton, setShowExitButton] = useState(cfg.showExitButton || false)
 
   const [status, setStatus] = useState('')
   const [statusError, setStatusError] = useState(false)
@@ -198,9 +200,20 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       iconSize,
       magnification,
       magnificationScale,
+      showNightModeButton,
+      showExitButton,
       apps: appsList
     }),
-    [position, triggerCorner, iframeMode, iconSize, magnification, magnificationScale]
+    [
+      position,
+      triggerCorner,
+      iframeMode,
+      iconSize,
+      magnification,
+      magnificationScale,
+      showNightModeButton,
+      showExitButton
+    ]
   )
 
   const doSave = useCallback(() => {
@@ -355,6 +368,22 @@ export default function PluginConfigurationPanel({ configuration, save }) {
         />
       )}
 
+      <div style={S.sectionTitle}>Utility Buttons</div>
+
+      <CheckboxField
+        label="Night/Day mode toggle"
+        checked={showNightModeButton}
+        onChange={setShowNightModeButton}
+        hint="Sun/moon button to toggle environment.mode"
+      />
+
+      <CheckboxField
+        label="Exit button"
+        checked={showExitButton}
+        onChange={setShowExitButton}
+        hint="X button to return to Signal K admin UI"
+      />
+
       <div style={S.sectionTitle}>Webapps</div>
       <button
         style={{ ...S.btn, ...S.btnPrimary, ...(discovering ? { opacity: 0.6 } : {}) }}
@@ -420,13 +449,50 @@ export default function PluginConfigurationPanel({ configuration, save }) {
         </div>
       )}
 
-      {enabledApps.length > 0 && (
+      {(enabledApps.length > 0 || showNightModeButton || showExitButton) && (
         <>
           <div style={S.sectionTitle}>Preview</div>
           <div style={S.preview}>
+            {showNightModeButton && (
+              <>
+                <div
+                  style={{
+                    ...S.iconBox,
+                    width: 40,
+                    height: 40,
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    fontSize: 20,
+                    borderRadius: 10
+                  }}
+                >
+                  {'\u2600\uFE0F'}
+                </div>
+                <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.15)', alignSelf: 'center' }} />
+              </>
+            )}
             {enabledApps.map((app, i) => (
               <IconPreview key={i} icon={app.icon} label={app.label || app.url} color={app.color} size={40} />
             ))}
+            {showExitButton && (
+              <>
+                <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.15)', alignSelf: 'center' }} />
+                <div
+                  style={{
+                    ...S.iconBox,
+                    width: 40,
+                    height: 40,
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    fontSize: 16,
+                    borderRadius: 10,
+                    color: '#fff'
+                  }}
+                >
+                  {'\u2715'}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

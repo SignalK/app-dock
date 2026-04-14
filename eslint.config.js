@@ -40,6 +40,7 @@ module.exports = [
         console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
         requestAnimationFrame: 'readonly',
         Promise: 'readonly',
         Set: 'readonly',

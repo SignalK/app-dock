@@ -22,6 +22,23 @@ module.exports = (app) => {
     start(settings) {
       pluginSettings = settings
 
+      if (settings.showNightModeButton) {
+        app.registerPutHandler(
+          'vessels.self',
+          'environment.mode',
+          (context, path, value, _callback) => {
+            if (value !== 'day' && value !== 'night') {
+              return { state: 'COMPLETED', statusCode: 400, message: 'Invalid mode' }
+            }
+            app.handleMessage(plugin.id, {
+              updates: [{ values: [{ path: 'environment.mode', value }] }]
+            })
+            return { state: 'COMPLETED', statusCode: 200 }
+          },
+          plugin.id
+        )
+      }
+
       setTimeout(() => {
         const discovered = getWebapps()
         if (discovered.length === 0) return
@@ -80,6 +97,11 @@ module.exports = (app) => {
       router.get('/webapps', (req, res) => {
         res.json(getWebapps())
       })
+
+      router.get('/mode', (req, res) => {
+        const current = app.getSelfPath('environment.mode')
+        res.json({ value: (current && current.value) || 'day' })
+      })
     },
 
     schema: {
@@ -129,6 +151,20 @@ module.exports = (app) => {
           type: 'number',
           title: 'Magnification scale (1.0 = none, 2.5 = maximum)',
           default: 1.7
+        },
+
+        showNightModeButton: {
+          type: 'boolean',
+          title: 'Show night/day mode toggle',
+          description: 'Adds a sun/moon button to the dock that toggles environment.mode',
+          default: false
+        },
+
+        showExitButton: {
+          type: 'boolean',
+          title: 'Show exit button',
+          description: 'Adds an X button to the dock that returns to Signal K admin UI',
+          default: false
         },
 
         apps: {

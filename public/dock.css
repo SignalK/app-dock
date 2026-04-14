@@ -359,6 +359,43 @@ body {
   transform: translateY(-50%);
 }
 
+/* ─── Dock separator ───────────────────────────────────────────────────────── */
+.dock-separator {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 2px;
+  border-radius: 1px;
+}
+
+.layout-vertical .dock-separator {
+  width: 32px;
+  height: 1px;
+  margin: 2px 0;
+}
+
+/* ─── Utility buttons (night mode, exit) ───────────────────────────────────── */
+.dock-icon-utility {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.dock-item-utility .dock-dot {
+  display: none;
+}
+
+.dock-item-utility:hover .dock-icon-utility,
+.dock-item-utility.pressing .dock-icon-utility {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-item-exit:hover .dock-icon-utility {
+  background: rgba(239, 68, 68, 0.25);
+}
+
 /* ─── Invisible corner trigger zone ────────────────────────────────────────── */
 #trigger-corner {
   position: fixed;

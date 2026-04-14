@@ -8,6 +8,8 @@
     iconSize: 56,
     magnification: true,
     magnificationScale: 1.7,
+    showNightModeButton: false,
+    showExitButton: false,
     apps: []
   }
 
@@ -51,6 +53,48 @@
   // ─── State ───────────────────────────────────────────────────────────────────
   let dockVisible = false
   const iframes = {}
+
+  // ─── Night mode state ────────────────────────────────────────────────────────
+  let currentMode = 'day'
+
+  async function fetchCurrentMode() {
+    try {
+      const res = await fetch('/plugins/signalk-app-dock/mode')
+      if (res.ok) {
+        const data = await res.json()
+        currentMode = data.value || 'day'
+        updateNightModeIcon()
+      }
+    } catch (e) {
+      console.warn('[Dock] Could not fetch environment.mode', e)
+    }
+  }
+
+  function updateNightModeIcon() {
+    const icon = document.querySelector('.dock-item-nightmode .dock-icon')
+    if (!icon) return
+    icon.textContent = currentMode === 'night' ? '\u{1F319}' : '\u2600\uFE0F'
+    const label = document.querySelector('.dock-item-nightmode .dock-label')
+    if (label) label.textContent = currentMode === 'night' ? 'Day mode' : 'Night mode'
+  }
+
+  async function toggleNightMode() {
+    await fetchCurrentMode()
+    const newMode = currentMode === 'night' ? 'day' : 'night'
+    try {
+      const res = await fetch('/signalk/v1/api/vessels/self/environment/mode', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newMode })
+      })
+      if (res.ok) {
+        currentMode = newMode
+        updateNightModeIcon()
+      }
+    } catch (e) {
+      console.warn('[Dock] Failed to toggle mode', e)
+    }
+  }
 
   // ─── Apply dock position class & alignment ───────────────────────────────────
   const pos = cfg.position
@@ -119,12 +163,66 @@
     }
   }
 
+  // ─── Utility item builder ─────────────────────────────────────────────────────
+  function createUtilityItem(className, icon, label, onClick) {
+    const sz = cfg.iconSize
+    const radius = Math.round(sz * 0.25) + 'px'
+    const lblCls = labelClass()
+
+    const $item = document.createElement('div')
+    $item.className = 'dock-item dock-item-utility ' + className
+
+    const $icon = document.createElement('div')
+    $icon.className = 'dock-icon dock-icon-utility'
+    $icon.style.width = sz + 'px'
+    $icon.style.height = sz + 'px'
+    $icon.style.borderRadius = radius
+    $icon.style.fontSize = Math.round(sz * 0.48) + 'px'
+    $icon.textContent = icon
+
+    const $dot = document.createElement('div')
+    $dot.className = 'dock-dot'
+
+    const $label = document.createElement('div')
+    $label.className = 'dock-label' + (lblCls ? ' ' + lblCls : '')
+    $label.textContent = label
+
+    $item.appendChild($icon)
+    $item.appendChild($dot)
+    $item.appendChild($label)
+
+    $item.addEventListener('touchstart', () => $item.classList.add('pressing'), { passive: true })
+    $item.addEventListener('touchend', () => $item.classList.remove('pressing'), { passive: true })
+    $item.addEventListener('touchcancel', () => $item.classList.remove('pressing'), { passive: true })
+
+    $item.addEventListener('click', (e) => {
+      if (magScrubbed) {
+        e.preventDefault()
+        return
+      }
+      onClick()
+    })
+
+    return $item
+  }
+
+  function createSeparator() {
+    const $sep = document.createElement('div')
+    $sep.className = 'dock-separator'
+    return $sep
+  }
+
   // ─── Build dock items ─────────────────────────────────────────────────────────
   function buildDock() {
     $dockInner.innerHTML = ''
     const sz = cfg.iconSize
     const radius = Math.round(sz * 0.25) + 'px'
     const lblCls = labelClass()
+
+    if (cfg.showNightModeButton) {
+      $dockInner.appendChild(createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', toggleNightMode))
+      $dockInner.appendChild(createSeparator())
+    }
 
     cfg.apps.forEach((app, i) => {
       const $item = document.createElement('div')
@@ -179,6 +277,17 @@
 
       $dockInner.appendChild($item)
     })
+
+    if (cfg.showExitButton) {
+      $dockInner.appendChild(createSeparator())
+      $dockInner.appendChild(
+        createUtilityItem('dock-item-exit', '\u2715', 'Exit to Admin', () => {
+          window.location.href = '/admin/'
+        })
+      )
+    }
+
+    if (cfg.showNightModeButton) updateNightModeIcon()
   }
 
   // ─── Magnification ───────────────────────────────────────────────────────────
@@ -446,6 +555,11 @@
   // ─── Init ────────────────────────────────────────────────────────────────────
   positionCornerZone()
   buildDock()
+
+  if (cfg.showNightModeButton) {
+    fetchCurrentMode()
+    setInterval(fetchCurrentMode, 5000)
+  }
 
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
   if (autostartIdx >= 0) {

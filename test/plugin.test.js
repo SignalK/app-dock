@@ -12,7 +12,10 @@ function createMockApp(webapps = []) {
     webapps,
     debug: () => {},
     error: () => {},
-    savePluginOptions: (opts, cb) => cb(null)
+    savePluginOptions: (opts, cb) => cb(null),
+    registerPutHandler: () => {},
+    handleMessage: () => {},
+    getSelfPath: () => null
   }
 }
 
@@ -73,6 +76,20 @@ describe('schema', () => {
     const plugin = pluginFactory(createMockApp())
     const items = plugin.schema.properties.apps.items
     assert.deepEqual(items.required, ['url'])
+  })
+
+  it('defines showNightModeButton with default false', () => {
+    const plugin = pluginFactory(createMockApp())
+    const prop = plugin.schema.properties.showNightModeButton
+    assert.equal(prop.type, 'boolean')
+    assert.equal(prop.default, false)
+  })
+
+  it('defines showExitButton with default false', () => {
+    const plugin = pluginFactory(createMockApp())
+    const prop = plugin.schema.properties.showExitButton
+    assert.equal(prop.type, 'boolean')
+    assert.equal(prop.default, false)
   })
 })
 
@@ -362,6 +379,140 @@ describe('package.json', () => {
   it('main points to plugin/index.js', () => {
     assert.equal(pkg.main, 'plugin/index.js')
     assert.ok(fs.existsSync(path.join(__dirname, '..', pkg.main)))
+  })
+})
+
+describe('night mode PUT handler', () => {
+  it('registers PUT handler when showNightModeButton is true', () => {
+    let registered = false
+    const app = createMockApp()
+    app.registerPutHandler = (context, path, callback, sourceId) => {
+      registered = true
+      assert.equal(context, 'vessels.self')
+      assert.equal(path, 'environment.mode')
+      assert.equal(sourceId, 'signalk-app-dock')
+    }
+
+    const plugin = pluginFactory(app)
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = (fn) => fn()
+    try {
+      plugin.start({ showNightModeButton: true, apps: [] })
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+    assert.ok(registered)
+  })
+
+  it('does not register PUT handler when showNightModeButton is false', () => {
+    let registered = false
+    const app = createMockApp()
+    app.registerPutHandler = () => {
+      registered = true
+    }
+
+    const plugin = pluginFactory(app)
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = (fn) => fn()
+    try {
+      plugin.start({ showNightModeButton: false, apps: [] })
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+    assert.equal(registered, false)
+  })
+
+  it('PUT handler accepts valid mode values and emits delta', () => {
+    const app = createMockApp()
+    let handlerCallback
+    let emittedDelta = null
+    app.registerPutHandler = (ctx, path, cb) => {
+      handlerCallback = cb
+    }
+    app.handleMessage = (id, delta) => {
+      emittedDelta = delta
+    }
+
+    const plugin = pluginFactory(app)
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = (fn) => fn()
+    try {
+      plugin.start({ showNightModeButton: true, apps: [] })
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+
+    const result = handlerCallback('vessels.self', 'environment.mode', 'night', () => {})
+    assert.equal(result.state, 'COMPLETED')
+    assert.equal(result.statusCode, 200)
+    assert.equal(emittedDelta.updates[0].values[0].path, 'environment.mode')
+    assert.equal(emittedDelta.updates[0].values[0].value, 'night')
+  })
+
+  it('PUT handler rejects invalid mode values', () => {
+    const app = createMockApp()
+    let handlerCallback
+    app.registerPutHandler = (ctx, path, cb) => {
+      handlerCallback = cb
+    }
+
+    const plugin = pluginFactory(app)
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = (fn) => fn()
+    try {
+      plugin.start({ showNightModeButton: true, apps: [] })
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+
+    const result = handlerCallback('vessels.self', 'environment.mode', 'invalid', () => {})
+    assert.equal(result.statusCode, 400)
+  })
+})
+
+describe('mode endpoint', () => {
+  it('returns day when no mode is set', (t, done) => {
+    const app = createMockApp()
+    const plugin = pluginFactory(app)
+    const routes = {}
+    const router = {
+      get: (path, handler) => {
+        routes[path] = handler
+      }
+    }
+    plugin.registerWithRouter(router)
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.value, 'day')
+        done()
+      }
+    }
+    routes['/mode']({}, res)
+  })
+
+  it('returns current mode when set', (t, done) => {
+    const app = createMockApp()
+    app.getSelfPath = (path) => {
+      if (path === 'environment.mode') return { value: 'night' }
+      return null
+    }
+    const plugin = pluginFactory(app)
+    const routes = {}
+    const router = {
+      get: (path, handler) => {
+        routes[path] = handler
+      }
+    }
+    plugin.registerWithRouter(router)
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.value, 'night')
+        done()
+      }
+    }
+    routes['/mode']({}, res)
   })
 })
 
