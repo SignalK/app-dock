@@ -45,7 +45,9 @@ module.exports = [
         Promise: 'readonly',
         Set: 'readonly',
         Infinity: 'readonly',
-        MutationObserver: 'readonly'
+        MutationObserver: 'readonly',
+        URLSearchParams: 'readonly',
+        location: 'readonly'
       }
     },
     rules: {

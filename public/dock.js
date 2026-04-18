@@ -399,9 +399,13 @@
   }
 
   // ─── Show / hide dock ────────────────────────────────────────────────────────
+  let dockShownAt = 0
+  const DOCK_CLICK_IGNORE_MS = 500
+
   function showDock() {
     if (dockVisible) return
     dockVisible = true
+    dockShownAt = Date.now()
     $dock.classList.add('visible')
     $backdrop.classList.add('visible')
   }
@@ -415,7 +419,17 @@
     resetMagnification()
   }
 
-  $backdrop.addEventListener('click', hideDock)
+  $backdrop.addEventListener('click', (e) => {
+    // Windows touch synthesizes a click on whatever's under the finger after
+    // pointerdown. If that click lands on the just-shown backdrop, it would
+    // immediately close the dock. Ignore clicks within a short window after
+    // the dock opens.
+    if (Date.now() - dockShownAt < DOCK_CLICK_IGNORE_MS) {
+      e.stopPropagation()
+      return
+    }
+    hideDock()
+  })
 
   // ─── Loading overlay helpers ──────────────────────────────────────────────────
   function showLoading(label) {
@@ -474,28 +488,39 @@
   // tap/click normally. A double-tap anywhere opens the dock. Side effect:
   // double-tapping a button fires that button once before the dock opens —
   // users are expected to aim double-taps at non-interactive regions.
-  const DOUBLE_TAP_MS = 280
-  const DOUBLE_TAP_MIN_GAP_MS = 60
-  const DOUBLE_TAP_SLOP = 24
+  const DOUBLE_TAP_MS = 450
+  const DOUBLE_TAP_SLOP = 40
 
   let lastTapTime = 0
   let lastTapX = 0
   let lastTapY = 0
 
   function triggerDock() {
+    if (DEBUG) console.log('[Dock] triggerDock called, dockVisible=', dockVisible)
     if (dockVisible) return
     showDock()
+    if (DEBUG) {
+      const r = $dock.getBoundingClientRect()
+      console.log('[Dock] after showDock: dock rect', r, 'classes', $dock.className)
+    }
     if (navigator.vibrate) navigator.vibrate(8)
   }
+
+  const DEBUG = new URLSearchParams(location.search).has('debugDock')
 
   function handleTap(clientX, clientY) {
     if (dockVisible) return
     const now = Date.now()
     const dx = clientX - lastTapX
     const dy = clientY - lastTapY
-    const close = dx * dx + dy * dy <= DOUBLE_TAP_SLOP * DOUBLE_TAP_SLOP
+    const dist = Math.round(Math.sqrt(dx * dx + dy * dy))
+    const close = dist <= DOUBLE_TAP_SLOP
     const gap = now - lastTapTime
-    if (gap >= DOUBLE_TAP_MIN_GAP_MS && gap < DOUBLE_TAP_MS && close) {
+    const match = gap < DOUBLE_TAP_MS && close
+    if (DEBUG) {
+      console.log('[Dock] tap', { x: Math.round(clientX), y: Math.round(clientY), gap, dist, close, match })
+    }
+    if (match) {
       lastTapTime = 0
       triggerDock()
     } else {
@@ -515,11 +540,39 @@
       return { x: r.left, y: r.top }
     }
 
+    // Dedupe: touchstart and pointerdown often both fire for the same gesture.
+    // We accept whichever arrives first and ignore the other if it's within
+    // 50 ms (the browser's synthesized-event coalescence window).
+    let lastEventAt = 0
+    const COALESCE_MS = 50
+
+    const onDown = (x, y) => {
+      const now = Date.now()
+      if (now - lastEventAt < COALESCE_MS) return
+      lastEventAt = now
+      handleTap(x, y)
+    }
+
     doc.addEventListener(
       'pointerdown',
       (e) => {
         const o = offset()
-        handleTap(e.clientX + o.x, e.clientY + o.y)
+        onDown(e.clientX + o.x, e.clientY + o.y)
+      },
+      { passive: true, capture: true }
+    )
+
+    // Fallback for Windows touchscreens + some browsers where the root
+    // document does not receive pointerdown for finger input (observed on
+    // W11 with touch-action: none). touchstart is the universally-supported
+    // event for direct touch.
+    doc.addEventListener(
+      'touchstart',
+      (e) => {
+        if (!e.touches || e.touches.length === 0) return
+        const t = e.touches[0]
+        const o = offset()
+        onDown(t.clientX + o.x, t.clientY + o.y)
       },
       { passive: true, capture: true }
     )
