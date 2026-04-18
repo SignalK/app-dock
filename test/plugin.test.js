@@ -58,12 +58,13 @@ describe('schema', () => {
     const plugin = pluginFactory(createMockApp())
     const props = Object.keys(plugin.schema.properties)
     assert.ok(props.includes('position'))
-    assert.ok(props.includes('triggerCorner'))
     assert.ok(props.includes('iframeMode'))
     assert.ok(props.includes('iconSize'))
     assert.ok(props.includes('magnification'))
     assert.ok(props.includes('magnificationScale'))
     assert.ok(props.includes('apps'))
+    assert.ok(!props.includes('triggerCorner'), 'triggerCorner should be removed')
+    assert.ok(!props.includes('longPressActivation'), 'longPressActivation should be removed')
   })
 
   it('position enum contains all four edges', () => {
@@ -90,11 +91,6 @@ describe('schema', () => {
     const prop = plugin.schema.properties.showExitButton
     assert.equal(prop.type, 'boolean')
     assert.equal(prop.default, false)
-  })
-
-  it('triggerCorner defaults to bottom-right', () => {
-    const plugin = pluginFactory(createMockApp())
-    assert.equal(plugin.schema.properties.triggerCorner.default, 'bottom-right')
   })
 
   it('defines tourDismissed with default false', () => {

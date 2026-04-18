@@ -44,7 +44,8 @@ module.exports = [
         requestAnimationFrame: 'readonly',
         Promise: 'readonly',
         Set: 'readonly',
-        Infinity: 'readonly'
+        Infinity: 'readonly',
+        MutationObserver: 'readonly'
       }
     },
     rules: {

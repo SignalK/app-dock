@@ -3,12 +3,11 @@
 
   const DEFAULTS = {
     position: 'bottom',
-    triggerCorner: 'bottom-right',
     iframeMode: 'keep-alive',
     iconSize: 56,
     magnification: true,
     magnificationScale: 1.7,
-    showNightModeButton: false,
+    showNightModeButton: true,
     showExitButton: false,
     apps: []
   }
@@ -44,7 +43,6 @@
   const $backdrop = document.getElementById('dock-backdrop')
   const $dock = document.getElementById('dock')
   const $dockInner = document.getElementById('dock-inner')
-  const $triggerCorner = document.getElementById('trigger-corner')
   const $loadingOverlay = document.getElementById('loading-overlay')
   const $loadingLabel = document.getElementById('loading-label')
   const $idleHint = document.getElementById('idle-hint')
@@ -130,18 +128,8 @@
       return
     }
 
-    const cornerNames = {
-      'bottom-right': 'bottom-right',
-      'bottom-left': 'bottom-left',
-      'top-right': 'top-right',
-      'top-left': 'top-left'
-    }
-    const corner = cornerNames[cfg.triggerCorner] || 'bottom-right'
-
     $idleHintText.innerHTML =
-      'Double-tap the <strong>' +
-      corner +
-      ' corner</strong> to open the dock' +
+      'Double-tap <strong>anywhere</strong> to open the dock' +
       '<br><br><span style="font-size:12px;opacity:0.6">Configure in Admin UI \u2192 Plugin Config \u2192 App Dock</span>'
   }
 
@@ -479,82 +467,111 @@
     hideDock()
   }
 
-  // ─── Corner trigger zone: position it ────────────────────────────────────────
-  function positionCornerZone() {
-    const [vert, horiz] = cfg.triggerCorner.split('-')
-    const sz = 120
+  // ─── Gesture: full-screen double-tap ────────────────────────────────────────
+  // No overlay element. We attach passive, non-preventDefault listeners to the
+  // parent document AND each same-origin iframe's contentDocument (recursively,
+  // to handle webapps like KIP that embed other apps), so webapps receive every
+  // tap/click normally. A double-tap anywhere opens the dock. Side effect:
+  // double-tapping a button fires that button once before the dock opens —
+  // users are expected to aim double-taps at non-interactive regions.
+  const DOUBLE_TAP_MS = 280
+  const DOUBLE_TAP_MIN_GAP_MS = 60
+  const DOUBLE_TAP_SLOP = 24
 
-    $triggerCorner.style.width = sz + 'px'
-    $triggerCorner.style.height = sz + 'px'
+  let lastTapTime = 0
+  let lastTapX = 0
+  let lastTapY = 0
 
-    $triggerCorner.style.top = ''
-    $triggerCorner.style.bottom = ''
-    $triggerCorner.style.left = ''
-    $triggerCorner.style.right = ''
-
-    $triggerCorner.style[vert] = '0'
-    $triggerCorner.style[horiz] = '0'
+  function triggerDock() {
+    if (dockVisible) return
+    showDock()
+    if (navigator.vibrate) navigator.vibrate(8)
   }
 
-  // ─── Gesture: double-tap on corner (touch) + double-click (mouse) ─────────────
-  {
-    let lastTapTime = 0
-    const DOUBLE_TAP_MS = 400
+  function handleTap(clientX, clientY) {
+    if (dockVisible) return
+    const now = Date.now()
+    const dx = clientX - lastTapX
+    const dy = clientY - lastTapY
+    const close = dx * dx + dy * dy <= DOUBLE_TAP_SLOP * DOUBLE_TAP_SLOP
+    const gap = now - lastTapTime
+    if (gap >= DOUBLE_TAP_MIN_GAP_MS && gap < DOUBLE_TAP_MS && close) {
+      lastTapTime = 0
+      triggerDock()
+    } else {
+      lastTapTime = now
+      lastTapX = clientX
+      lastTapY = clientY
+    }
+  }
 
-    $triggerCorner.addEventListener(
-      'touchend',
+  function attachTapListener(doc, frameEl) {
+    if (!doc || doc.__dockListenersAttached) return
+    doc.__dockListenersAttached = true
+
+    const offset = () => {
+      if (!frameEl) return { x: 0, y: 0 }
+      const r = frameEl.getBoundingClientRect()
+      return { x: r.left, y: r.top }
+    }
+
+    doc.addEventListener(
+      'pointerdown',
       (e) => {
-        const now = Date.now()
-        if (now - lastTapTime < DOUBLE_TAP_MS) {
-          e.preventDefault()
-          lastTapTime = 0
-          showDock()
-          if (navigator.vibrate) navigator.vibrate(8)
-        } else {
-          lastTapTime = now
-        }
+        const o = offset()
+        handleTap(e.clientX + o.x, e.clientY + o.y)
       },
-      { passive: false }
+      { passive: true, capture: true }
     )
-
-    $triggerCorner.addEventListener('dblclick', (e) => {
-      e.preventDefault()
-      showDock()
-    })
-
-    $triggerCorner.addEventListener('contextmenu', (e) => e.preventDefault())
   }
 
-  // ─── Gesture: mouse hover at screen edge ─────────────────────────────────────
-  {
-    const EDGE_ZONE = 4
-    let edgeTimer = null
+  // Recursively attach to iframes at any nesting depth. Webapps like KIP
+  // embed other webapps (e.g. FSK) in their own iframes, so we walk the tree
+  // and observe each same-origin contentDocument for future iframe additions.
+  const attachedDocs = new WeakSet()
 
-    document.addEventListener('mousemove', (e) => {
-      if (dockVisible) return
-      const W = window.innerWidth
-      const H = window.innerHeight
-      let atEdge = false
+  function attachToIframe(frame) {
+    const wire = () => {
+      let doc
+      try {
+        doc = frame.contentDocument
+      } catch {
+        return // cross-origin; can't reach
+      }
+      if (!doc || attachedDocs.has(doc)) return
+      attachedDocs.add(doc)
+      attachTapListener(doc, frame)
+      scanAndObserveDoc(doc)
+    }
+    frame.addEventListener('load', wire)
+    wire()
+  }
 
-      if (pos === 'bottom' && e.clientY >= H - EDGE_ZONE) atEdge = true
-      if (pos === 'top' && e.clientY <= EDGE_ZONE) atEdge = true
-      if (pos === 'left' && e.clientX <= EDGE_ZONE) atEdge = true
-      if (pos === 'right' && e.clientX >= W - EDGE_ZONE) atEdge = true
+  function scanAndObserveDoc(doc) {
+    // Attach to iframes already in this document.
+    doc.querySelectorAll('iframe').forEach((f) => attachToIframe(f))
 
-      if (atEdge && !edgeTimer) {
-        edgeTimer = setTimeout(() => {
-          showDock()
-          edgeTimer = null
-        }, 300)
-      } else if (!atEdge && edgeTimer) {
-        clearTimeout(edgeTimer)
-        edgeTimer = null
+    // Observe future iframe additions anywhere in the doc tree.
+    const root = doc.documentElement || doc.body || doc
+    const obs = new MutationObserver((records) => {
+      for (const r of records) {
+        r.addedNodes.forEach((n) => {
+          if (!n || n.nodeType !== 1) return
+          if (n.tagName === 'IFRAME') attachToIframe(n)
+          // Descendants: catch iframes added as part of a subtree.
+          const nested = n.querySelectorAll && n.querySelectorAll('iframe')
+          if (nested) nested.forEach((f) => attachToIframe(f))
+        })
       }
     })
+    obs.observe(root, { childList: true, subtree: true })
   }
 
+  attachTapListener(document, null)
+  attachedDocs.add(document)
+  scanAndObserveDoc(document)
+
   // ─── Init ────────────────────────────────────────────────────────────────────
-  positionCornerZone()
   buildDock()
 
   if (cfg.showNightModeButton) {
@@ -562,26 +579,47 @@
     setInterval(fetchCurrentMode, 5000)
   }
 
+  // Changes to any of these require a full rebuild (dock classes, magnification
+  // constants, dock items, etc.) — easiest to just reload the page.
+  const STRUCTURAL_KEYS = [
+    'position',
+    'iframeMode',
+    'iconSize',
+    'magnification',
+    'magnificationScale',
+    'showNightModeButton',
+    'showExitButton'
+  ]
+
   async function refreshConfig() {
     try {
       const [configRes, settingsRes] = await Promise.all([
         fetch('/plugins/signalk-app-dock/config'),
         fetch('/plugins/signalk-app-dock/settings')
       ])
-      const prev = JSON.stringify(cfg)
+      const prev = cfg
+      let next = cfg
       if (configRes.ok) {
         const data = await configRes.json()
         const pluginCfg = data.configuration || data
-        cfg = { ...DEFAULTS, ...pluginCfg }
+        next = { ...DEFAULTS, ...pluginCfg, apps: prev.apps }
       }
       if (settingsRes.ok) {
         const data = await settingsRes.json()
         if (Array.isArray(data.apps) && data.apps.length > 0) {
-          cfg.apps = data.apps
+          next = { ...next, apps: data.apps }
         }
       }
-      if (JSON.stringify(cfg) !== prev) {
+      const structuralChanged = STRUCTURAL_KEYS.some((k) => prev[k] !== next[k])
+      if (structuralChanged) {
+        window.location.reload()
+        return
+      }
+      if (JSON.stringify(next.apps) !== JSON.stringify(prev.apps)) {
+        cfg = next
         buildDock()
+      } else {
+        cfg = next
       }
     } catch {
       // ignore transient errors (e.g. during plugin restart)

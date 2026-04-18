@@ -396,19 +396,6 @@ body {
   background: rgba(239, 68, 68, 0.25);
 }
 
-/* ─── Invisible corner trigger zone ────────────────────────────────────────── */
-#trigger-corner {
-  position: fixed;
-  z-index: 9;
-  width: 120px;
-  height: 120px;
-  pointer-events: auto;
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
 /* ─── Loading overlay ───────────────────────────────────────────────────────── */
 #loading-overlay {
   position: fixed;

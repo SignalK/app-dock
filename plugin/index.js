@@ -141,14 +141,6 @@ module.exports = (app) => {
           default: 'bottom'
         },
 
-        triggerCorner: {
-          type: 'string',
-          title: 'Double-tap corner',
-          description: 'Screen corner that activates the dock on double-tap',
-          enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
-          default: 'bottom-right'
-        },
-
         iframeMode: {
           type: 'string',
           title: 'iFrame lifecycle',

@@ -175,13 +175,13 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const cfg = configuration || {}
   const [apps, setApps] = useState(() => cfg.apps || [])
   const [position, setPosition] = useState(cfg.position || 'bottom')
-  const [triggerCorner, setTriggerCorner] = useState(cfg.triggerCorner || 'bottom-right')
   const [iframeMode, setIframeMode] = useState(cfg.iframeMode || 'keep-alive')
   const [iconSize, setIconSize] = useState(cfg.iconSize || 56)
   const [magnification, setMagnification] = useState(cfg.magnification !== false)
   const [magnificationScale, setMagnificationScale] = useState(cfg.magnificationScale || 1.7)
   const [showNightModeButton, setShowNightModeButton] = useState(cfg.showNightModeButton || false)
   const [showExitButton, setShowExitButton] = useState(cfg.showExitButton || false)
+  const [tourDismissed, setTourDismissed] = useState(cfg.tourDismissed || false)
 
   const [status, setStatus] = useState('')
   const [statusError, setStatusError] = useState(false)
@@ -203,24 +203,24 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const buildConfig = useCallback(
     (appsList) => ({
       position,
-      triggerCorner,
       iframeMode,
       iconSize,
       magnification,
       magnificationScale,
       showNightModeButton,
       showExitButton,
+      tourDismissed,
       apps: appsList
     }),
     [
       position,
-      triggerCorner,
       iframeMode,
       iconSize,
       magnification,
       magnificationScale,
       showNightModeButton,
-      showExitButton
+      showExitButton,
+      tourDismissed
     ]
   )
 
@@ -353,18 +353,6 @@ export default function PluginConfigurationPanel({ configuration, save }) {
           { value: 'top', label: 'Top' },
           { value: 'left', label: 'Left' },
           { value: 'right', label: 'Right' }
-        ]}
-      />
-
-      <SelectField
-        label="Double-tap corner"
-        value={triggerCorner}
-        onChange={setTriggerCorner}
-        options={[
-          { value: 'bottom-right', label: 'Bottom-right' },
-          { value: 'bottom-left', label: 'Bottom-left' },
-          { value: 'top-right', label: 'Top-right' },
-          { value: 'top-left', label: 'Top-left' }
         ]}
       />
 
