@@ -1,6 +1,34 @@
 ;(async function DockApp() {
   'use strict'
 
+  // Bail out if we're running inside another iframe. This prevents the
+  // dock-in-dock loop when the dock is opened via its own Settings tile /
+  // the admin UI's Webapps tab / any other embed path. Same-origin redirect
+  // the top window to the dock URL so the user ends up on a clean
+  // standalone dock instead of a nested instance. The outer dock grants
+  // allow-top-navigation-by-user-activation in its iframe sandbox, so this
+  // works as long as the user activated the nested load by tapping.
+  if (window.self !== window.top) {
+    const dockUrl = window.location.href
+    try {
+      window.top.location.replace(dockUrl)
+    } catch {
+      // Cross-origin parent or missing top-nav sandbox permission.
+    }
+    // If replace() was blocked, top-nav sandbox permission was missing AND
+    // the user hadn't tapped recently. Show a tappable escape hatch — the
+    // click is itself a user activation, so the link succeeds even when
+    // only allow-top-navigation-by-user-activation is present.
+    document.body.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;height:100vh;color:#fff;background:#000;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:16px">' +
+      '<img src="app-icon.svg" alt="App Dock" style="width:72px;height:72px;border-radius:16px;opacity:0.85" />' +
+      '<a href="' +
+      dockUrl +
+      '" target="_top" style="color:#fff;text-decoration:underline;font-size:16px">Open App Dock</a>' +
+      '</div>'
+    return
+  }
+
   const DEFAULTS = {
     position: 'bottom',
     iframeMode: 'keep-alive',
@@ -13,10 +41,11 @@
   }
 
   // Fallback app list used when we can't read server config — i.e. the
-  // visitor is anonymous on a server with `allow_readonly` enabled, so
-  // /plugins/* 403s. Mirrors the server-side DEFAULT_APPS in plugin/index.js
-  // so the demo at demo.signalk.org behaves sensibly for non-logged-in users.
-  const ANONYMOUS_DEFAULTS = {
+  // visitor has no admin access (/plugins/* requires admin in signalk-server,
+  // so anonymous, readonly and readwrite users all 401/403). Mirrors the
+  // server-side DEFAULT_APPS in plugin/index.js so the demo at
+  // demo.signalk.org behaves sensibly for non-admin visitors.
+  const NO_ADMIN_DEFAULTS = {
     showNightModeButton: true,
     apps: [
       {
@@ -46,25 +75,30 @@
     ]
   }
 
-  // ─── Detect login state ──────────────────────────────────────────────────────
-  // /signalk/v1/auth/loginStatus is public even when allow_readonly is on.
-  // Anonymous users get a 403 on /plugins/*, so we branch early.
-  let isAnonymous = false
-  try {
-    const res = await fetch('/signalk/v1/auth/loginStatus')
-    if (res.ok) {
-      const data = await res.json()
-      isAnonymous = data.status !== 'loggedIn'
+  // ─── Detect admin access ────────────────────────────────────────────────────
+  // /skServer/loginStatus is public even when allow_readonly is on and
+  // /plugins/* is admin-gated. Only logged-in admins can read plugin
+  // settings — anonymous, readonly and readwrite users all 401/403. We set
+  // noAdminAccess accordingly and take the fallback path for all of them.
+  // Try /skServer/loginStatus first, fall back to the legacy /loginStatus.
+  let noAdminAccess = false
+  for (const url of ['/skServer/loginStatus', '/loginStatus']) {
+    try {
+      const res = await fetch(url)
+      if (res.ok) {
+        const data = await res.json()
+        noAdminAccess = !(data.status === 'loggedIn' && data.userLevel === 'admin')
+        break
+      }
+    } catch {
+      // try next URL
     }
-  } catch {
-    // If loginStatus itself is unreachable, fall through to the authenticated
-    // path — the fetches below will either succeed or fall back to DEFAULTS.
   }
 
   // ─── Load config from plugin endpoints ───────────────────────────────────────
   let cfg = { ...DEFAULTS }
-  if (isAnonymous) {
-    cfg = { ...DEFAULTS, ...ANONYMOUS_DEFAULTS }
+  if (noAdminAccess) {
+    cfg = { ...DEFAULTS, ...NO_ADMIN_DEFAULTS }
   } else {
     try {
       const [configRes, settingsRes] = await Promise.all([
@@ -109,7 +143,7 @@
   let currentMode = 'day'
 
   async function fetchCurrentMode() {
-    if (isAnonymous) return
+    if (noAdminAccess) return
     try {
       const res = await fetch('/plugins/signalk-app-dock/mode')
       if (res.ok) {
@@ -131,7 +165,7 @@
   }
 
   async function toggleNightMode() {
-    if (isAnonymous) return
+    if (noAdminAccess) return
     await fetchCurrentMode()
     const newMode = currentMode === 'night' ? 'day' : 'night'
     try {
@@ -176,10 +210,10 @@
     }
 
     if (!cfg.apps || cfg.apps.length === 0) {
-      if (isAnonymous) {
+      if (noAdminAccess) {
         $idleHintText.innerHTML =
-          'Viewing in read-only mode.<br>' +
-          '<a href="/admin/" style="color:inherit;text-decoration:underline">Log in</a> to customize apps.'
+          'App Dock can only be customised by an administrator.<br>' +
+          'Ask an admin to set up apps in <strong>Plugin Config</strong>.'
       } else {
         $idleHintText.innerHTML =
           'No apps configured yet.<br>' +
@@ -189,8 +223,8 @@
       return
     }
 
-    const footer = isAnonymous
-      ? '<br><br><span style="font-size:12px;opacity:0.6">Read-only view \u2014 <a href="/admin/" style="color:inherit">log in</a> to customize</span>'
+    const footer = noAdminAccess
+      ? '<br><br><span style="font-size:12px;opacity:0.6">Customisation is admin-only</span>'
       : '<br><br><span style="font-size:12px;opacity:0.6">Configure in Admin UI \u2192 Plugin Config \u2192 App Dock</span>'
     $idleHintText.innerHTML = 'Double-tap <strong>anywhere</strong> to open the dock' + footer
   }
@@ -528,7 +562,8 @@
 
       const $frame = document.createElement('iframe')
       $frame.allow = 'fullscreen; geolocation'
-      $frame.sandbox = 'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock'
+      $frame.sandbox =
+        'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation'
       $frame.style.touchAction = 'auto'
 
       $frame.addEventListener('load', hideLoading, { once: true })
@@ -689,7 +724,7 @@
   // ─── Init ────────────────────────────────────────────────────────────────────
   buildDock()
 
-  if (cfg.showNightModeButton && !isAnonymous) {
+  if (cfg.showNightModeButton && !noAdminAccess) {
     fetchCurrentMode()
     setInterval(fetchCurrentMode, 5000)
   }
@@ -741,7 +776,7 @@
     }
   }
 
-  if (!isAnonymous) setInterval(refreshConfig, 5000)
+  if (!noAdminAccess) setInterval(refreshConfig, 5000)
 
   // ─── Welcome tour ────────────────────────────────────────────────────────────
   const $tourOverlay = document.getElementById('tour-overlay')
@@ -758,20 +793,18 @@
     showDock()
   }
 
-  const ANON_TOUR_KEY = 'appDockTourDismissed'
-
   if ($tourGotIt) $tourGotIt.addEventListener('click', hideTour)
-  if ($tourDismiss) {
+
+  // Anonymous visitors can't persist tour dismissal server-side (POST
+  // /dismiss-tour requires auth), so we drop the "Don't show again" button
+  // rather than advertise a setting we can't honour. The tour reappears on
+  // next visit — correct semantics for a read-only visitor.
+  if (noAdminAccess) {
+    if ($tourDismiss) $tourDismiss.remove()
+    document.getElementById('tour-buttons')?.style.setProperty('justify-content', 'center')
+  } else if ($tourDismiss) {
     $tourDismiss.addEventListener('click', async () => {
       hideTour()
-      if (isAnonymous) {
-        try {
-          window.localStorage.setItem(ANON_TOUR_KEY, '1')
-        } catch {
-          // localStorage may be unavailable (private mode, etc.)
-        }
-        return
-      }
       try {
         await fetch('/plugins/signalk-app-dock/dismiss-tour', { method: 'POST' })
       } catch {
@@ -782,10 +815,10 @@
 
   const $tourLink = document.getElementById('tour-link')
   if ($tourLink) {
-    if (isAnonymous) {
-      // Anonymous visitors can't reach Plugin Config; replace the link with
+    if (noAdminAccess) {
+      // Non-admin visitors can't reach Plugin Config; replace the link with
       // plain text so the tour doesn't advertise a dead-end.
-      $tourLink.replaceWith(document.createTextNode('Plugin Config (once logged in)'))
+      $tourLink.replaceWith(document.createTextNode('Plugin Config (admin only)'))
     } else {
       $tourLink.addEventListener('click', (e) => {
         e.preventDefault()
@@ -793,7 +826,8 @@
         hideIdleHint()
         const $frame = document.createElement('iframe')
         $frame.allow = 'fullscreen; geolocation'
-        $frame.sandbox = 'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock'
+        $frame.sandbox =
+          'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation'
         $frame.style.touchAction = 'auto'
         $frame.classList.add('active')
         $iframeContainer.innerHTML = ''
@@ -806,13 +840,7 @@
     }
   }
 
-  let anonTourDismissed = false
-  try {
-    anonTourDismissed = window.localStorage.getItem(ANON_TOUR_KEY) === '1'
-  } catch {
-    // localStorage unavailable — show tour every visit in that case
-  }
-  if (!cfg.tourDismissed && !(isAnonymous && anonTourDismissed)) showTour()
+  if (!cfg.tourDismissed) showTour()
 
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
   if (autostartIdx >= 0) {
