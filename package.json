@@ -1,6 +1,6 @@
 {
   "name": "@signalk/app-dock",
-  "version": "0.3.2-beta.1",
+  "version": "0.3.2",
   "description": "macOS-style configurable app dock for switching between SignalK webapps on touch screens",
   "repository": {
     "url": "https://github.com/SignalK/app-dock"
@@ -14,7 +14,12 @@
   "signalk-plugin-enabled-by-default": true,
   "signalk": {
     "displayName": "App Dock",
-    "appIcon": "./app-icon.svg"
+    "appIcon": "./app-icon.svg",
+    "screenshots": [
+      "./docs/screenshots/1_app-dock_preview.png",
+      "./docs/screenshots/2_app-dock_entry.png",
+      "./docs/screenshots/3_app-dock_config.png"
+    ]
   },
   "main": "plugin/index.js",
   "scripts": {
