@@ -180,6 +180,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   const [magnification, setMagnification] = useState(cfg.magnification !== false)
   const [magnificationScale, setMagnificationScale] = useState(cfg.magnificationScale || 1.7)
   const [showNightModeButton, setShowNightModeButton] = useState(cfg.showNightModeButton || false)
+  const [showFullscreenButton, setShowFullscreenButton] = useState(cfg.showFullscreenButton || false)
   const [showExitButton, setShowExitButton] = useState(cfg.showExitButton || false)
   const [tourDismissed, setTourDismissed] = useState(cfg.tourDismissed || false)
 
@@ -208,6 +209,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       magnification,
       magnificationScale,
       showNightModeButton,
+      showFullscreenButton,
       showExitButton,
       tourDismissed,
       apps: appsList
@@ -219,6 +221,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       magnification,
       magnificationScale,
       showNightModeButton,
+      showFullscreenButton,
       showExitButton,
       tourDismissed
     ]
@@ -389,6 +392,13 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       />
 
       <CheckboxField
+        label="Fullscreen toggle"
+        checked={showFullscreenButton}
+        onChange={setShowFullscreenButton}
+        hint="Toggles browser fullscreen. Hidden on devices without Fullscreen API support (e.g. iPadOS Safari)."
+      />
+
+      <CheckboxField
         label="Exit button"
         checked={showExitButton}
         onChange={setShowExitButton}
@@ -460,27 +470,43 @@ export default function PluginConfigurationPanel({ configuration, save }) {
         </div>
       )}
 
-      {(enabledApps.length > 0 || showNightModeButton || showExitButton) && (
+      {(enabledApps.length > 0 || showNightModeButton || showFullscreenButton || showExitButton) && (
         <>
           <div style={S.sectionTitle}>Preview</div>
           <div style={S.preview}>
             {showNightModeButton && (
-              <>
-                <div
-                  style={{
-                    ...S.iconBox,
-                    width: 40,
-                    height: 40,
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    fontSize: 20,
-                    borderRadius: 10
-                  }}
-                >
-                  {'\u2600\uFE0F'}
-                </div>
-                <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.15)', alignSelf: 'center' }} />
-              </>
+              <div
+                style={{
+                  ...S.iconBox,
+                  width: 40,
+                  height: 40,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  fontSize: 20,
+                  borderRadius: 10
+                }}
+              >
+                {'\u2600\uFE0F'}
+              </div>
+            )}
+            {showFullscreenButton && (
+              <div
+                style={{
+                  ...S.iconBox,
+                  width: 40,
+                  height: 40,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  fontSize: 20,
+                  borderRadius: 10,
+                  color: '#fff'
+                }}
+              >
+                {'\u26F6'}
+              </div>
+            )}
+            {(showNightModeButton || showFullscreenButton) && (
+              <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.15)', alignSelf: 'center' }} />
             )}
             {enabledApps.map((app, i) => (
               <IconPreview key={i} icon={app.icon} label={app.label || app.url} color={app.color} size={40} />
