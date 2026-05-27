@@ -521,4 +521,22 @@ describe('public files', () => {
   it('icon-settings.svg exists', () => {
     assert.ok(fs.existsSync(path.join(publicDir, 'icon-settings.svg')))
   })
+
+  it('manifest.webmanifest exists and is valid JSON with required PWA fields', () => {
+    const manifestPath = path.join(publicDir, 'manifest.webmanifest')
+    assert.ok(fs.existsSync(manifestPath))
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    assert.equal(typeof manifest.name, 'string')
+    assert.equal(typeof manifest.start_url, 'string')
+    assert.equal(manifest.display, 'standalone')
+    assert.ok(Array.isArray(manifest.icons) && manifest.icons.length > 0)
+  })
+
+  it('app-icon-180.png exists (apple-touch-icon)', () => {
+    assert.ok(fs.existsSync(path.join(publicDir, 'app-icon-180.png')))
+  })
+
+  it('app-icon-maskable.svg exists', () => {
+    assert.ok(fs.existsSync(path.join(publicDir, 'app-icon-maskable.svg')))
+  })
 })

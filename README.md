@@ -35,6 +35,18 @@ Tip: double-tapping a clickable element in the underlying webapp will activate t
 
 Config changes made in **Plugin Config** apply automatically within ~5 seconds: structural changes (position, icon size, etc.) reload the dock page; changes to the app list hot-update in place.
 
+## Install as an app
+
+The dock ships a web app manifest, so iOS and Android can install it to the home screen and launch it like a native app -- no Safari/Chrome chrome, no URL bar.
+
+- **iPad / iPhone (Safari)**: open the dock URL, tap the Share icon, choose **Add to Home Screen**.
+- **Android (Chrome)**: open the dock URL, tap the ⋮ menu, choose **Install app** (or **Add to Home Screen**).
+- **Desktop (Chrome, Edge)**: an install icon appears in the address bar; click it.
+
+HTTPS is **not required** for Add-to-Home-Screen -- the dock installs cleanly over plain `http://your-sk-server:3000/`. It works equally over HTTPS with a self-signed or local-CA cert, provided the device has been configured to trust that CA (the usual iPad profile flow: Settings > General > VPN & Device Management > trust the profile > Settings > General > About > Certificate Trust Settings > enable full trust).
+
+If the installed dock ever displays a blank screen after a long idle period (rare; only if the server's caching layer ignores the dock's `no-cache` directives), remove the home-screen icon and re-add it from Safari.
+
 ## Configuration
 
 Open **Plugin Config > App Dock** in the admin UI. The embedded configurator provides:
@@ -86,6 +98,16 @@ The repo ships three cooperating surfaces:
 | `npm run format`       | Prettier + ESLint fix                                             |
 | `npm run lint`         | ESLint check                                                      |
 | `npm run build:config` | Rebuild the admin UI config panel (required after `src/` changes) |
+
+### Icon assets
+
+If `public/app-icon.svg` changes, regenerate the 180-px apple-touch-icon:
+
+```bash
+rsvg-convert -w 180 -h 180 public/app-icon.svg -o public/app-icon-180.png
+```
+
+`public/app-icon-maskable.svg` is a hand-authored wrapper that places the artwork inside Android's 80% safe zone; if the main icon's layout changes meaningfully, update it by hand to match.
 
 ## License
 
