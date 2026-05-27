@@ -13,6 +13,8 @@ A macOS-style app dock for switching between Signal K webapps on touch screens.
 - **Autostart** -- optionally load a default app immediately on open
 - **keep-alive or destroy** iframe lifecycle
 - **Night/day mode toggle** -- optional sun/moon button that flips `environment.mode` via a PUT handler
+- **Fullscreen toggle** -- optional button that hides browser chrome via the Fullscreen API; feature-detected, so hidden on devices without API support (notably iPadOS Safari -- use Add to Home Screen there)
+- **Installable as an app** -- ships a web app manifest and apple-touch-icon so iOS, Android, and desktop browsers can install the dock to the home screen and launch it in standalone mode (no browser chrome). Works over plain HTTP -- no SSL required
 - **Active dot indicator**, label tooltip, haptic feedback
 - **Embedded config panel** in the admin UI with webapp discovery, drag-to-reorder, and live preview
 
@@ -59,15 +61,16 @@ Open **Plugin Config > App Dock** in the admin UI. The embedded configurator pro
 
 ### Settings
 
-| Setting               | Default      | Description                                                                                      |
-| --------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
-| `position`            | `bottom`     | Dock edge: `bottom`, `top`, `left`, `right`                                                      |
-| `iframeMode`          | `keep-alive` | `keep-alive` loads each app once and hides/shows (faster, more RAM); `destroy` reloads each time |
-| `iconSize`            | `56`         | Base icon size in px                                                                             |
-| `magnification`       | `true`       | Enable macOS-style magnification effect                                                          |
-| `magnificationScale`  | `1.7`        | Max icon scale (1.0-2.5)                                                                         |
-| `showNightModeButton` | `true`       | Show sun/moon button in dock; PUT-writes `environment.mode`                                      |
-| `showExitButton`      | `false`      | Show X button that returns to the Signal K admin UI                                              |
+| Setting                | Default      | Description                                                                                      |
+| ---------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `position`             | `bottom`     | Dock edge: `bottom`, `top`, `left`, `right`                                                      |
+| `iframeMode`           | `keep-alive` | `keep-alive` loads each app once and hides/shows (faster, more RAM); `destroy` reloads each time |
+| `iconSize`             | `56`         | Base icon size in px                                                                             |
+| `magnification`        | `true`       | Enable macOS-style magnification effect                                                          |
+| `magnificationScale`   | `1.7`        | Max icon scale (1.0-2.5)                                                                         |
+| `showNightModeButton`  | `true`       | Show sun/moon button in dock; PUT-writes `environment.mode`                                      |
+| `showFullscreenButton` | `false`      | Show fullscreen toggle in dock; hidden automatically where the Fullscreen API is unavailable     |
+| `showExitButton`       | `false`      | Show X button that returns to the Signal K admin UI                                              |
 
 ## Development
 
