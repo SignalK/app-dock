@@ -51,6 +51,7 @@ module.exports = (app) => {
         const seeded = DEFAULT_APPS.map((a) => ({ ...a }))
         const seededSettings = {
           showNightModeButton: true,
+          showFullscreenButton: false,
           showExitButton: false,
           ...settings,
           apps: seeded
@@ -174,6 +175,15 @@ module.exports = (app) => {
           title: 'Show night/day mode toggle',
           description: 'Adds a sun/moon button to the dock that toggles environment.mode',
           default: true
+        },
+
+        showFullscreenButton: {
+          type: 'boolean',
+          title: 'Show fullscreen toggle',
+          description:
+            'Adds a button to the dock that toggles browser fullscreen. ' +
+            'Hidden automatically when the Fullscreen API is not available (e.g. iPadOS Safari — use Add to Home Screen instead).',
+          default: false
         },
 
         showExitButton: {

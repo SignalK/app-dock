@@ -36,6 +36,7 @@
     magnification: true,
     magnificationScale: 1.7,
     showNightModeButton: true,
+    showFullscreenButton: false,
     showExitButton: false,
     apps: []
   }
@@ -188,6 +189,35 @@
     }
   }
 
+  // ─── Fullscreen toggle ───────────────────────────────────────────────────────
+  // Targets documentElement so the iframe (a descendant) goes fullscreen with
+  // the dock. Targeting body or the iframe directly would either fail or make
+  // the iframe the fullscreen element, which breaks gesture passthrough.
+  function fullscreenSupported() {
+    return !!(document.fullscreenEnabled && document.documentElement.requestFullscreen)
+  }
+
+  function isFullscreen() {
+    return !!document.fullscreenElement
+  }
+
+  function toggleFullscreen() {
+    if (!fullscreenSupported()) return
+    if (isFullscreen()) {
+      document.exitFullscreen().catch((e) => console.warn('[Dock] exitFullscreen', e))
+    } else {
+      document.documentElement.requestFullscreen().catch((e) => console.warn('[Dock] requestFullscreen', e))
+    }
+  }
+
+  function updateFullscreenIcon() {
+    const icon = document.querySelector('.dock-item-fullscreen .dock-icon')
+    if (!icon) return
+    icon.textContent = isFullscreen() ? '\u2922' : '\u26F6'
+    const label = document.querySelector('.dock-item-fullscreen .dock-label')
+    if (label) label.textContent = isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'
+  }
+
   // ─── Apply dock position class & alignment ───────────────────────────────────
   const pos = cfg.position
   $dock.classList.add(`pos-${pos}`)
@@ -310,6 +340,13 @@
 
     if (cfg.showNightModeButton) {
       $dockInner.appendChild(createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', toggleNightMode))
+    }
+
+    if (cfg.showFullscreenButton && fullscreenSupported()) {
+      $dockInner.appendChild(createUtilityItem('dock-item-fullscreen', '\u26F6', 'Fullscreen', toggleFullscreen))
+    }
+
+    if (cfg.showNightModeButton || (cfg.showFullscreenButton && fullscreenSupported())) {
       $dockInner.appendChild(createSeparator())
     }
 
@@ -377,6 +414,7 @@
     }
 
     if (cfg.showNightModeButton) updateNightModeIcon()
+    if (cfg.showFullscreenButton && fullscreenSupported()) updateFullscreenIcon()
   }
 
   // ─── Magnification ───────────────────────────────────────────────────────────
@@ -734,6 +772,10 @@
     setInterval(fetchCurrentMode, 5000)
   }
 
+  if (cfg.showFullscreenButton && fullscreenSupported()) {
+    document.addEventListener('fullscreenchange', updateFullscreenIcon)
+  }
+
   // Changes to any of these require a full rebuild (dock classes, magnification
   // constants, dock items, etc.) — easiest to just reload the page.
   const STRUCTURAL_KEYS = [
@@ -743,6 +785,7 @@
     'magnification',
     'magnificationScale',
     'showNightModeButton',
+    'showFullscreenButton',
     'showExitButton'
   ]
 
