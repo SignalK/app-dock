@@ -495,6 +495,51 @@ describe('mode endpoint', () => {
   })
 })
 
+describe('route access', () => {
+  // Records each route with the level it is registered at: 'admin' for a
+  // route registered on the router itself, the access() level otherwise.
+  function recordingRouter({ withAccess }) {
+    const levels = {}
+    const registrar = (level) => ({
+      get: (path) => {
+        levels[`GET ${path}`] = level
+      },
+      post: (path) => {
+        levels[`POST ${path}`] = level
+      }
+    })
+    const router = registrar('admin')
+    if (withAccess) router.access = registrar
+    return { router, levels }
+  }
+
+  it('opens /settings and /mode to readonly users and /dismiss-tour to readwrite users', () => {
+    const plugin = pluginFactory(createMockApp())
+    const { router, levels } = recordingRouter({ withAccess: true })
+    plugin.registerWithRouter(router)
+
+    assert.deepEqual(levels, {
+      'GET /settings': 'readonly',
+      'GET /webapps': 'admin',
+      'GET /mode': 'readonly',
+      'POST /dismiss-tour': 'readwrite'
+    })
+  })
+
+  it('registers every route on the router itself when it has no access()', () => {
+    const plugin = pluginFactory(createMockApp())
+    const { router, levels } = recordingRouter({ withAccess: false })
+    plugin.registerWithRouter(router)
+
+    assert.deepEqual(levels, {
+      'GET /settings': 'admin',
+      'GET /webapps': 'admin',
+      'GET /mode': 'admin',
+      'POST /dismiss-tour': 'admin'
+    })
+  })
+})
+
 describe('public files', () => {
   const publicDir = path.join(__dirname, '..', 'public')
 

@@ -99,7 +99,12 @@ module.exports = (app) => {
     stop() {},
 
     registerWithRouter(router) {
-      router.get('/settings', (req, res) => {
+      // Routes registered on the router itself are admin-only. signalk-server
+      // 2.31 and later add router.access(), which opens a route to readonly or
+      // readwrite users; on older servers every route stays admin-only.
+      const openTo = (level) => (typeof router.access === 'function' ? router.access(level) : router)
+
+      openTo('readonly').get('/settings', (req, res) => {
         res.json({
           ...pluginSettings,
           apps: resolvedApps
@@ -110,12 +115,12 @@ module.exports = (app) => {
         res.json(getWebapps())
       })
 
-      router.get('/mode', (req, res) => {
+      openTo('readonly').get('/mode', (req, res) => {
         const current = app.getSelfPath('environment.mode')
         res.json({ value: (current && current.value) || 'day' })
       })
 
-      router.post('/dismiss-tour', (req, res) => {
+      openTo('readwrite').post('/dismiss-tour', (req, res) => {
         const updated = { ...pluginSettings, tourDismissed: true }
         app.savePluginOptions(updated, (err) => {
           if (err) {

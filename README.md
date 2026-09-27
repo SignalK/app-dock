@@ -72,6 +72,20 @@ Open **Plugin Config > App Dock** in the admin UI. The embedded configurator pro
 | `showFullscreenButton` | `false`      | Show fullscreen toggle in dock; hidden automatically where the Fullscreen API is unavailable     |
 | `showExitButton`       | `false`      | Show X button that returns to the Signal K admin UI                                              |
 
+## Access
+
+With security enabled, what the dock offers depends on the visitor:
+
+| Visitor                                        | Apps shown | Night-mode toggle | "Don't show again" in the tour |
+| ---------------------------------------------- | ---------- | ----------------- | ------------------------------ |
+| admin                                          | configured | yes               | yes                            |
+| readwrite user                                 | configured | yes               | yes                            |
+| readonly user                                  | configured | no                | no                             |
+| not signed in, server allows read-only access  | configured | no                | no                             |
+| not signed in, server refuses read-only access | built-in   | no                | no                             |
+
+Visitors who are not admins reach the plugin's routes through `router.access()`, which signalk-server 2.31 added. On older servers they get the built-in list, the same apps the plugin seeds on its first start. Only admins can open **Plugin Config**, and "Don't show again" hides the tour for every visitor.
+
 ## Development
 
 ```bash
