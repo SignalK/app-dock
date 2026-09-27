@@ -84,7 +84,7 @@ With security enabled, what the dock offers depends on the visitor:
 | not signed in, server allows read-only access  | configured | no                | no                             |
 | not signed in, server refuses read-only access | built-in   | no                | no                             |
 
-Visitors who are not admins reach the plugin's routes through `router.access()`, which signalk-server 2.31 added. On older servers they get the built-in list, the same apps the plugin seeds on its first start. Only admins can open **Plugin Config**, and "Don't show again" hides the tour for every visitor.
+Visitors who are not admins reach the plugin's routes through `router.access()`, which signalk-server 2.31 added. On older servers they get the built-in list, the same apps the plugin seeds on its first start. Only admins can open **Plugin Config**, and "Don't show again" hides the tour for every visitor. Everyone who gets the configured apps can also read their URLs from the plugin's `/settings`, so keep credentials out of app URLs.
 
 ## Development
 
