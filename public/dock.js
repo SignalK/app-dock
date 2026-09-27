@@ -587,8 +587,10 @@
 
     hideIdleHint()
 
-    document.querySelectorAll('.dock-item').forEach((el, i) => {
-      el.classList.toggle('active', i === index)
+    // The night-mode and fullscreen buttons are .dock-items too; only app
+    // items carry a data-index.
+    document.querySelectorAll('.dock-item').forEach((el) => {
+      el.classList.toggle('active', el.dataset.index === String(index))
     })
 
     const alreadyLoaded = !!iframes[app.url]
