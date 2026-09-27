@@ -41,11 +41,12 @@
     apps: []
   }
 
-  // Fallback app list used when we can't read server config — i.e. the
-  // visitor has no admin access (/plugins/* requires admin in signalk-server,
-  // so anonymous, readonly and readwrite users all 401/403). Mirrors the
-  // server-side DEFAULT_APPS in plugin/index.js so the demo at
-  // demo.signalk.org behaves sensibly for non-admin visitors.
+  // Fallback app list for a visitor who is not an admin when the plugin's
+  // /settings refuses them. signalk-server before 2.31 keeps every plugin
+  // route admin-only, and any version refuses a visitor who is not signed in
+  // unless it allows read-only access. Mirrors the server-side DEFAULT_APPS
+  // in plugin/index.js so the demo at demo.signalk.org behaves sensibly for
+  // non-admin visitors.
   const NO_ADMIN_DEFAULTS = {
     showNightModeButton: true,
     apps: [
@@ -76,24 +77,26 @@
     ]
   }
 
-  // ─── Detect admin access ────────────────────────────────────────────────────
-  // /skServer/loginStatus is public even when allow_readonly is on and
-  // /plugins/* is admin-gated. Only logged-in admins can read plugin
-  // settings — anonymous, readonly and readwrite users all 401/403. We set
-  // noAdminAccess accordingly and take the fallback path for all of them.
+  // ─── Detect access level ────────────────────────────────────────────────────
+  // /skServer/loginStatus is public. Only an admin can read the plugin's
+  // /config (signalk-server keeps it admin-only), so every other visitor has
+  // noAdminAccess and reads the dock from /settings instead. canWrite marks
+  // the users signalk-server lets write: admins and readwrite users.
   // When authenticationRequired is false (no-auth / dummy-security setups),
   // /plugins/* is reachable without a login, so treat the visitor as
   // full-access instead of falling through to the hardcoded fallback list.
   // Try /skServer/loginStatus first, fall back to the legacy /loginStatus.
   let noAdminAccess = false
+  let canWrite = true
   for (const url of ['/skServer/loginStatus', '/loginStatus']) {
     try {
       const res = await fetch(url)
       if (res.ok) {
         const data = await res.json()
         const authOff = data.authenticationRequired === false
-        const isAdmin = data.status === 'loggedIn' && data.userLevel === 'admin'
-        noAdminAccess = !authOff && !isAdmin
+        const level = data.status === 'loggedIn' ? data.userLevel : undefined
+        noAdminAccess = !authOff && level !== 'admin'
+        canWrite = authOff || level === 'admin' || level === 'readwrite'
         break
       }
     } catch {
@@ -101,10 +104,31 @@
     }
   }
 
+  // The dock as the plugin serves it on /settings: the plugin configuration
+  // with the enabled apps resolved. The plugin opens this route to every user
+  // with read access on signalk-server 2.31 and later. Null when the route
+  // refuses this visitor or answers without an app list.
+  async function fetchSharedConfig() {
+    try {
+      const res = await fetch('/plugins/signalk-app-dock/settings')
+      if (!res.ok) return null
+      const data = await res.json()
+      return Array.isArray(data.apps) ? { ...DEFAULTS, ...data } : null
+    } catch {
+      return null
+    }
+  }
+
   // ─── Load config from plugin endpoints ───────────────────────────────────────
   let cfg = { ...DEFAULTS }
+  // Whether the dock keeps calling the plugin's routes after loading: always
+  // for an admin, and for anyone else once /settings has served them the dock
+  // (the plugin opens /settings and /mode to the same users).
+  let pluginReachable = !noAdminAccess
   if (noAdminAccess) {
-    cfg = { ...DEFAULTS, ...NO_ADMIN_DEFAULTS }
+    const shared = await fetchSharedConfig()
+    pluginReachable = shared !== null
+    cfg = shared || { ...DEFAULTS, ...NO_ADMIN_DEFAULTS }
   } else {
     try {
       const [configRes, settingsRes] = await Promise.all([
@@ -147,9 +171,13 @@
 
   // ─── Night mode state ────────────────────────────────────────────────────────
   let currentMode = 'day'
+  // The button reads the mode from the plugin's /mode and switches it with a
+  // PUT that signalk-server accepts from admins and readwrite users only, so
+  // only visitors who can do both get the button.
+  const nightModeUsable = pluginReachable && canWrite
 
   async function fetchCurrentMode() {
-    if (noAdminAccess) return
+    if (!pluginReachable) return
     try {
       const res = await fetch('/plugins/signalk-app-dock/mode')
       if (res.ok) {
@@ -171,7 +199,7 @@
   }
 
   async function toggleNightMode() {
-    if (noAdminAccess) return
+    if (!nightModeUsable) return
     await fetchCurrentMode()
     const newMode = currentMode === 'night' ? 'day' : 'night'
     try {
@@ -338,7 +366,8 @@
     const radius = Math.round(sz * 0.25) + 'px'
     const lblCls = labelClass()
 
-    if (cfg.showNightModeButton) {
+    const showNightMode = cfg.showNightModeButton && nightModeUsable
+    if (showNightMode) {
       $dockInner.appendChild(createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', toggleNightMode))
     }
 
@@ -346,7 +375,7 @@
       $dockInner.appendChild(createUtilityItem('dock-item-fullscreen', '\u26F6', 'Fullscreen', toggleFullscreen))
     }
 
-    if (cfg.showNightModeButton || (cfg.showFullscreenButton && fullscreenSupported())) {
+    if (showNightMode || (cfg.showFullscreenButton && fullscreenSupported())) {
       $dockInner.appendChild(createSeparator())
     }
 
@@ -769,7 +798,7 @@
   // ─── Init ────────────────────────────────────────────────────────────────────
   buildDock()
 
-  if (cfg.showNightModeButton && !noAdminAccess) {
+  if (cfg.showNightModeButton && nightModeUsable) {
     fetchCurrentMode()
     setInterval(fetchCurrentMode, 5000)
   }
@@ -793,21 +822,25 @@
 
   async function refreshConfig() {
     try {
-      const [configRes, settingsRes] = await Promise.all([
-        fetch('/plugins/signalk-app-dock/config'),
-        fetch('/plugins/signalk-app-dock/settings')
-      ])
       const prev = cfg
       let next = cfg
-      if (configRes.ok) {
-        const data = await configRes.json()
-        const pluginCfg = data.configuration || data
-        next = { ...DEFAULTS, ...pluginCfg, apps: prev.apps }
-      }
-      if (settingsRes.ok) {
-        const data = await settingsRes.json()
-        if (Array.isArray(data.apps) && data.apps.length > 0) {
-          next = { ...next, apps: data.apps }
+      if (noAdminAccess) {
+        next = (await fetchSharedConfig()) || prev
+      } else {
+        const [configRes, settingsRes] = await Promise.all([
+          fetch('/plugins/signalk-app-dock/config'),
+          fetch('/plugins/signalk-app-dock/settings')
+        ])
+        if (configRes.ok) {
+          const data = await configRes.json()
+          const pluginCfg = data.configuration || data
+          next = { ...DEFAULTS, ...pluginCfg, apps: prev.apps }
+        }
+        if (settingsRes.ok) {
+          const data = await settingsRes.json()
+          if (Array.isArray(data.apps) && data.apps.length > 0) {
+            next = { ...next, apps: data.apps }
+          }
         }
       }
       const structuralChanged = STRUCTURAL_KEYS.some((k) => prev[k] !== next[k])
@@ -826,7 +859,7 @@
     }
   }
 
-  if (!noAdminAccess) setInterval(refreshConfig, 5000)
+  if (pluginReachable) setInterval(refreshConfig, 5000)
 
   // ─── Welcome tour ────────────────────────────────────────────────────────────
   const $tourOverlay = document.getElementById('tour-overlay')
@@ -845,11 +878,13 @@
 
   if ($tourGotIt) $tourGotIt.addEventListener('click', hideTour)
 
-  // Anonymous visitors can't persist tour dismissal server-side (POST
-  // /dismiss-tour requires auth), so we drop the "Don't show again" button
-  // rather than advertise a setting we can't honour. The tour reappears on
-  // next visit — correct semantics for a read-only visitor.
-  if (noAdminAccess) {
+  // "Don't show again" POSTs /dismiss-tour, which saves tourDismissed in the
+  // plugin configuration, so it applies to every user. The plugin opens that
+  // route to readwrite users. Everyone else who is not an admin, and anyone
+  // /settings did not serve the dock to, gets no button rather than one that
+  // advertises a setting we can't honour. The tour reappears on their next
+  // visit.
+  if (!pluginReachable || !canWrite) {
     if ($tourDismiss) $tourDismiss.remove()
     document.getElementById('tour-buttons')?.style.setProperty('justify-content', 'center')
   } else if ($tourDismiss) {

@@ -30,6 +30,26 @@ const DEFAULT_APPS = [
 module.exports = (app) => {
   let pluginSettings = {}
   let resolvedApps = []
+  let running = false
+
+  function resolveApps(settings) {
+    return (Array.isArray(settings.apps) ? settings.apps : [])
+      .filter((a) => a.enabled !== false)
+      .map((a) => ({
+        label: a.label || a.url,
+        url: a.url,
+        icon: a.icon || null,
+        color: a.color || null,
+        autostart: a.autostart || false
+      }))
+  }
+
+  // The configuration as saved, the one /config serves. While the plugin is
+  // not running, pluginSettings is empty (never started) or holds what the
+  // last start() got, which a later save may have replaced.
+  function savedSettings() {
+    return app.readPluginOptions().configuration || {}
+  }
 
   function getWebapps() {
     return (app.webapps || [])
@@ -83,26 +103,27 @@ module.exports = (app) => {
         )
       }
 
-      resolvedApps = (settings.apps || [])
-        .filter((a) => a.enabled !== false)
-        .map((a) => ({
-          label: a.label || a.url,
-          url: a.url,
-          icon: a.icon || null,
-          color: a.color || null,
-          autostart: a.autostart || false
-        }))
+      resolvedApps = resolveApps(settings)
+      running = true
 
       app.debug('App Dock: resolved %d apps: %s', resolvedApps.length, resolvedApps.map((a) => a.label).join(', '))
     },
 
-    stop() {},
+    stop() {
+      running = false
+    },
 
     registerWithRouter(router) {
-      router.get('/settings', (req, res) => {
+      // Routes registered on the router itself are admin-only. signalk-server
+      // 2.31 and later add router.access(), which opens a route to readonly or
+      // readwrite users; on older servers every route stays admin-only.
+      const openTo = (level) => (typeof router.access === 'function' ? router.access(level) : router)
+
+      openTo('readonly').get('/settings', (req, res) => {
+        const settings = running ? pluginSettings : savedSettings()
         res.json({
-          ...pluginSettings,
-          apps: resolvedApps
+          ...settings,
+          apps: running ? resolvedApps : resolveApps(settings)
         })
       })
 
@@ -110,13 +131,15 @@ module.exports = (app) => {
         res.json(getWebapps())
       })
 
-      router.get('/mode', (req, res) => {
+      openTo('readonly').get('/mode', (req, res) => {
         const current = app.getSelfPath('environment.mode')
         res.json({ value: (current && current.value) || 'day' })
       })
 
-      router.post('/dismiss-tour', (req, res) => {
-        const updated = { ...pluginSettings, tourDismissed: true }
+      openTo('readwrite').post('/dismiss-tour', (req, res) => {
+        // savePluginOptions replaces the whole saved configuration, so the
+        // update starts from a complete one.
+        const updated = { ...(running ? pluginSettings : savedSettings()), tourDismissed: true }
         app.savePluginOptions(updated, (err) => {
           if (err) {
             app.error('App Dock: failed to save tourDismissed: ' + err.message)

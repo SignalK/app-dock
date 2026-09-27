@@ -13,6 +13,7 @@ function createMockApp(webapps = []) {
     debug: () => {},
     error: () => {},
     savePluginOptions: (opts, cb) => cb(null),
+    readPluginOptions: () => ({}),
     registerPutHandler: () => {},
     handleMessage: () => {},
     getSelfPath: () => null
@@ -215,6 +216,85 @@ describe('settings endpoint', () => {
         assert.equal(data.position, 'left')
         assert.equal(data.iconSize, 64)
         assert.ok(Array.isArray(data.apps))
+        done()
+      }
+    }
+    routes['/settings']({}, res)
+  })
+
+  it('serves the saved configuration before the plugin has started', (t, done) => {
+    const app = createMockApp()
+    app.readPluginOptions = () => ({
+      enabled: false,
+      configuration: {
+        position: 'right',
+        apps: [
+          { url: '/a/', label: 'A', enabled: true },
+          { url: '/b/', label: 'B', enabled: false }
+        ]
+      }
+    })
+    const plugin = pluginFactory(app)
+
+    const routes = {}
+    plugin.registerWithRouter({
+      get: (path, handler) => {
+        routes[path] = handler
+      },
+      post: () => {}
+    })
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.position, 'right')
+        assert.deepEqual(data.apps, [{ label: 'A', url: '/a/', icon: null, color: null, autostart: false }])
+        done()
+      }
+    }
+    routes['/settings']({}, res)
+  })
+
+  it('serves no apps when the saved apps value is not an array', (t, done) => {
+    const app = createMockApp()
+    app.readPluginOptions = () => ({ enabled: false, configuration: { apps: {} } })
+    const plugin = pluginFactory(app)
+
+    const routes = {}
+    plugin.registerWithRouter({
+      get: (path, handler) => {
+        routes[path] = handler
+      },
+      post: () => {}
+    })
+
+    const res = {
+      json: (data) => {
+        assert.deepEqual(data.apps, [])
+        done()
+      }
+    }
+    routes['/settings']({}, res)
+  })
+
+  it('serves the saved configuration after stop()', (t, done) => {
+    const app = createMockApp()
+    app.readPluginOptions = () => ({ enabled: false, configuration: { position: 'top', apps: [] } })
+    const plugin = pluginFactory(app)
+    plugin.start({ position: 'left', apps: [{ url: '/a/', label: 'A' }] })
+    plugin.stop()
+
+    const routes = {}
+    plugin.registerWithRouter({
+      get: (path, handler) => {
+        routes[path] = handler
+      },
+      post: () => {}
+    })
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.position, 'top')
+        assert.deepEqual(data.apps, [])
         done()
       }
     }
@@ -445,6 +525,35 @@ describe('dismiss-tour endpoint', () => {
     }
     routes.post['/dismiss-tour']({}, res)
   })
+
+  it('keeps the saved configuration when the plugin is not running', (t, done) => {
+    const app = createMockApp()
+    const apps = [{ url: '/a/', label: 'A', enabled: true }]
+    app.readPluginOptions = () => ({ enabled: false, configuration: { position: 'right', apps } })
+    let saved = null
+    app.savePluginOptions = (opts, cb) => {
+      saved = opts
+      cb(null)
+    }
+    const plugin = pluginFactory(app)
+
+    const routes = {}
+    plugin.registerWithRouter({
+      get: () => {},
+      post: (path, handler) => {
+        routes[path] = handler
+      }
+    })
+
+    const res = {
+      json: (data) => {
+        assert.equal(data.tourDismissed, true)
+        assert.deepEqual(saved, { position: 'right', apps, tourDismissed: true })
+        done()
+      }
+    }
+    routes['/dismiss-tour']({}, res)
+  })
 })
 
 describe('mode endpoint', () => {
@@ -492,6 +601,51 @@ describe('mode endpoint', () => {
       }
     }
     routes['/mode']({}, res)
+  })
+})
+
+describe('route access', () => {
+  // Records each route with the level it is registered at: 'admin' for a
+  // route registered on the router itself, the access() level otherwise.
+  function recordingRouter({ withAccess }) {
+    const levels = {}
+    const registrar = (level) => ({
+      get: (path) => {
+        levels[`GET ${path}`] = level
+      },
+      post: (path) => {
+        levels[`POST ${path}`] = level
+      }
+    })
+    const router = registrar('admin')
+    if (withAccess) router.access = registrar
+    return { router, levels }
+  }
+
+  it('opens /settings and /mode to readonly users and /dismiss-tour to readwrite users', () => {
+    const plugin = pluginFactory(createMockApp())
+    const { router, levels } = recordingRouter({ withAccess: true })
+    plugin.registerWithRouter(router)
+
+    assert.deepEqual(levels, {
+      'GET /settings': 'readonly',
+      'GET /webapps': 'admin',
+      'GET /mode': 'readonly',
+      'POST /dismiss-tour': 'readwrite'
+    })
+  })
+
+  it('registers every route on the router itself when it has no access()', () => {
+    const plugin = pluginFactory(createMockApp())
+    const { router, levels } = recordingRouter({ withAccess: false })
+    plugin.registerWithRouter(router)
+
+    assert.deepEqual(levels, {
+      'GET /settings': 'admin',
+      'GET /webapps': 'admin',
+      'GET /mode': 'admin',
+      'POST /dismiss-tour': 'admin'
+    })
   })
 })
 
