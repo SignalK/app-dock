@@ -12,9 +12,9 @@ const DEFAULT_APPS = [
   {
     enabled: true,
     autostart: false,
-    url: '/@mxtommy/kip/',
-    label: 'KIP',
-    icon: '/@mxtommy/kip/assets/icon-72x72.png',
+    url: '/@halos-org/skip/',
+    label: 'Skip',
+    icon: '/@halos-org/skip/assets/icon-72x72.png',
     color: ''
   },
   {
