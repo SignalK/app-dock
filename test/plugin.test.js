@@ -237,7 +237,7 @@ describe('default apps seeding', () => {
     assert.ok(savedOptions)
     assert.equal(savedOptions.apps[0].url, '/@signalk/freeboard-sk/')
     assert.equal(savedOptions.apps[0].autostart, true)
-    assert.equal(savedOptions.apps[1].url, '/@mxtommy/kip/')
+    assert.equal(savedOptions.apps[1].url, '/@halos-org/skip/')
     assert.equal(savedOptions.apps[1].autostart, false)
     assert.equal(savedOptions.apps[2].url, '/admin/')
     assert.equal(savedOptions.apps[2].label, 'Settings')
