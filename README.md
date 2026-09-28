@@ -37,6 +37,26 @@ Tip: double-tapping a clickable element in the underlying webapp will activate t
 
 Config changes made in **Plugin Config** apply automatically within ~5 seconds: structural changes (position, icon size, etc.) reload the dock page; changes to the app list hot-update in place.
 
+## Apps on another origin
+
+The dock notices a double-tap by listening inside each app's page, and a browser allows that only for pages on the same origin (scheme, host and port) as the dock. A page from another port or host is out of reach: the app itself, a page the app moves its frame to (such as a radar display opened directly on its own server), or one the app shows in a frame of its own. While any such page in the app on screen does not forward its taps, a small tab at the dock's edge opens the dock with a single tap.
+
+An app on another origin can bring back double-tap by forwarding its pointerdowns to the dock:
+
+```js
+if (window.self !== window.top) {
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      window.top.postMessage({ type: 'signalk-app-dock:pointerdown', x: e.clientX, y: e.clientY }, '*')
+    },
+    { passive: true, capture: true }
+  )
+}
+```
+
+The dock accepts these messages only from a page of the app on screen that it cannot listen to itself, or a frame inside that page, and all they do is count towards a double-tap. The tab goes away once every such page has sent one. A page that loads again starts over: the tab is back until its first tap.
+
 ## Install as an app
 
 The dock ships a web app manifest, so iOS and Android can install it to the home screen and launch it like a native app -- no Safari/Chrome chrome, no URL bar.

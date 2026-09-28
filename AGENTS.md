@@ -35,9 +35,15 @@ React panel.
   access detection at the top of `dock.js` and the **Access** table in `README.md` with it.
 - **`/settings` is readable by every visitor with read access.** Never put credentials or anything secret in it; that
   includes app URLs.
-- **Taps pass through.** The double-tap listener is passive, never calls `preventDefault()`, and there is no overlay
-  element. It attaches to the dock document and, recursively, to every same-origin iframe document, so apps that embed
-  other apps still open the dock.
+- **Taps pass through.** The double-tap listener is passive, never calls `preventDefault()`, and nothing covers an app
+  except the small handle described below. It attaches to the dock document and, recursively, to every same-origin
+  iframe document, so apps that embed other apps still open the dock.
+- **Apps on another origin forward taps or get the handle.** The listeners cannot reach a page on another origin, whether
+  it is the app itself or a frame inside the app. Such a page can post `{ type: 'signalk-app-dock:pointerdown', x, y }`
+  to the dock (documented under **Apps on another origin** in `README.md`). `#dock-handle` shows while any unreachable
+  frame in the active app has not sent its own message since it last loaded (one from a frame inside it does not count), and opens the dock with a single tap. The message
+  handler accepts a message only from inside one of those frames, so no tap counts twice. Keep that check, the
+  per-load reset and the coordinate check: a message must never do more than feed `handleTap()`.
 - **One iframe sandbox string.** `switchToApp()` and the tour's Plugin Config link in `dock.js` create iframes with the
   same `sandbox` value; keep them identical. `allow-top-navigation-by-user-activation` is what lets a dock opened inside
   a dock break out to the top window (the guard at the top of `dock.js`).
@@ -131,7 +137,7 @@ publishes to npm with provenance (OIDC trusted publishing, no token).
 | Path                          | Purpose                                                                               |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
 | `plugin/index.js`             | Plugin entry: schema, default-app seeding, routes, night-mode PUT handler.            |
-| `public/index.html`           | Dock page: idle screen, dock, backdrop, loading overlay, welcome tour.                |
+| `public/index.html`           | Dock page: idle screen, handle, dock, backdrop, loading overlay, welcome tour.        |
 | `public/dock.js`              | Dock logic: access detection, config loading and polling, iframes, double-tap, dock.  |
 | `public/dock.css`             | Dock styling, magnification, positions.                                               |
 | `public/manifest.webmanifest` | PWA manifest for Add to Home Screen.                                                  |
