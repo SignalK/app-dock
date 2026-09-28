@@ -74,6 +74,11 @@ This repo is maintained by Dirk Wahrheit.
 - Branch names use **hyphens**, never slashes.
 - Angular conventional commits: `<type>(<scope>): <subject>`. PR titles use the same format; the generated release
   notes are built from them.
+- The PR title's type also picks its section in the release notes. `.github/workflows/label-by-title.yml` labels each
+  PR when it is opened or its title edited: `feat`/`perf` → `enhancement` (🚀 Features), `fix` → `bug` (🐛 Fixes),
+  `docs` → `documentation` (📖 Documentation), `build`/`ci`/`test`/`chore`/`refactor`/`style` → `skip-changelog`
+  (left out). Any other type lands under Other. A label set by hand stays until the title is next edited. Keep the
+  workflow and `.github/release.yml` naming the same labels.
 - One logical change per commit.
 - No `Co-Authored-By` lines. No "Generated with Claude Code" attribution.
 - Never commit directly to `main`. Every change goes through a PR.
