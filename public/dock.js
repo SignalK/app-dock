@@ -819,7 +819,8 @@
   const FORWARDED_POINTERDOWN = 'signalk-app-dock:pointerdown'
   const FORWARD_COALESCE_MS = 50
   // Per app frame, the frames in it (itself included) the listeners cannot
-  // reach, and which of those have forwarded a pointerdown since they loaded.
+  // reach, and which of those have sent a pointerdown of their own since they
+  // loaded.
   const unreachableFrames = new WeakMap()
   const forwardingFrames = new WeakSet()
   let lastForwardedAt = 0
