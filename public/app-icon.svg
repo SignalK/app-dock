@@ -5,10 +5,8 @@
       <stop offset="100%" stop-color="#2563eb"/>
     </linearGradient>
   </defs>
-  <!-- White base -->
-  <rect width="72" height="72" fill="#ffffff"/>
-  <!-- Background -->
-  <rect width="72" height="72" rx="16" fill="url(#bg)"/>
+  <!-- Background, full bleed: whatever displays the icon rounds the corners -->
+  <rect width="72" height="72" fill="url(#bg)"/>
   <!-- Dock pill -->
   <rect x="8" y="48" width="56" height="16" rx="8" fill="#ffffff" fill-opacity="0.25" stroke="#ffffff" stroke-opacity="0.4" stroke-width="0.5"/>
   <!-- Dock icons - 3 squares in the pill -->
