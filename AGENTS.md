@@ -95,11 +95,23 @@ ESLint, so run them locally.
 
 ### Releases
 
-1. A `chore(release): X.Y.Z` PR that bumps `version` in `package.json` and `package-lock.json`, nothing else.
-2. After it merges, push an annotated tag `vX.Y.Z` on the merge commit.
-3. `.github/workflows/release_on_tag.yml` creates the GitHub Release with generated notes and publishes to npm with
-   provenance (OIDC trusted publishing, no token). A tag containing `alpha`, `beta` or `rc` publishes under that npm
-   dist-tag and marks the Release as a prerelease.
+Releases are cut by release-please. Every releasable push to `main` updates a standing release PR titled
+`chore(release): X.Y.Z` that bumps `version` in `package.json` and `package-lock.json`. Merging it creates the tag and
+the GitHub Release, and `.github/workflows/release-please.yml` then dispatches `release_on_tag.yml` on the tag, which
+publishes to npm with provenance (OIDC trusted publishing, no token).
+
+- **The version follows the commits:** `feat` → minor, `fix`, `perf` and `revert` → patch, `!` or a
+  `BREAKING CHANGE:` footer → major. A `Release-As: X.Y.Z` footer overrides it. Do not bump the version in an ordinary
+  PR.
+- **A push with nothing releasable leaves the release PR alone.** The `gate` job in `release-please.yml` decides what
+  counts; its comment lists the cases. Revert with a conventional `revert:` subject, since release-please ignores
+  GitHub's `Revert "…"`. Change the gate's last alternative together with `pull-request-title-pattern` in
+  `release-please-config.json`, or the release PR's merge never creates a tag.
+- **Merge the release PR once it lists your change.** release-please refreshes it a moment after each merge; a
+  release PR merged before that still ships the change (the tag is on top of it) but its notes leave it out.
+- **Pre-releases are cut by hand:** a `chore(release): X.Y.Z-beta.N` PR, then an annotated tag `vX.Y.Z-beta.N` pushed
+  on its merge commit. `release_on_tag.yml` creates their Release itself and publishes under the npm dist-tag `alpha`,
+  `beta` or `rc` that the tag contains.
 
 ## File layout
 
