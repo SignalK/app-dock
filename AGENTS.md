@@ -55,6 +55,14 @@ output and are tracked in git. After changing `src/configpanel/`, run `npm run b
 files with the source change. `prepublishOnly` rebuilds them at publish time. Prettier and ESLint skip them, and ESLint
 also skips `src/`.
 
+## What the npm package ships
+
+`files` in `package.json` is an allowlist: `plugin/`, `public/` and `docs/screenshots/`, plus the README, LICENSE and
+`package.json` that npm always adds. A file the plugin or the dock needs at runtime has to live in one of those
+directories or be added to the list. Nothing outside it is published, and a missing file shows up only in an installed
+copy, not in a checkout. `docs/screenshots/` must stay: `signalk.screenshots` points there, and the App Store and the
+plugin registry read them from the package. Check with `npm pack --dry-run`.
+
 ## Icons
 
 `public/app-icon.svg` is the source icon: the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,

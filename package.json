@@ -22,6 +22,11 @@
     ]
   },
   "main": "plugin/index.js",
+  "files": [
+    "plugin/",
+    "public/",
+    "docs/screenshots/"
+  ],
   "scripts": {
     "build:config": "webpack",
     "prepublishOnly": "webpack",
