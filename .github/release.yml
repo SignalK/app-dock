@@ -5,7 +5,10 @@
 # pre-release tag pushed by hand.
 #
 # A PR lands in the first category it matches, so the catch-all is last.
-# Label a PR to place it; an unlabelled one still appears, under Other.
+# workflows/label-by-title.yml sets the label from the PR title's type, and
+# this file and that workflow name the same labels. A label set by hand
+# places a PR the same way until its title is edited; an unlabelled one
+# still appears, under Other.
 changelog:
   exclude:
     labels:
