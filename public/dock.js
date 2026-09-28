@@ -164,6 +164,7 @@
   const $loadingLabel = document.getElementById('loading-label')
   const $idleHint = document.getElementById('idle-hint')
   const $idleHintText = document.getElementById('idle-hint-text')
+  const $dockHandle = document.getElementById('dock-handle')
 
   // ─── State ───────────────────────────────────────────────────────────────────
   let dockVisible = false
@@ -250,6 +251,7 @@
   const pos = cfg.position
   $dock.classList.add(`pos-${pos}`)
   $dockInner.classList.add(`align-${pos}`)
+  $dockHandle.classList.add(`pos-${pos}`)
 
   const isVertical = pos === 'left' || pos === 'right'
   if (isVertical) $dockInner.classList.add('layout-vertical')
@@ -576,6 +578,7 @@
     dockShownAt = Date.now()
     $dock.classList.add('visible')
     $backdrop.classList.add('visible')
+    updateHandle()
   }
 
   function hideDock() {
@@ -585,6 +588,7 @@
     $dock.classList.remove('visible')
     $backdrop.classList.remove('visible')
     resetMagnification()
+    updateHandle()
   }
 
   $backdrop.addEventListener('click', (e) => {
@@ -649,6 +653,7 @@
     }
 
     iframes[app.url].classList.add('active')
+    updateHandle()
     hideDock()
   }
 
@@ -665,6 +670,9 @@
   let lastTapTime = 0
   let lastTapX = 0
   let lastTapY = 0
+  // Coordinates are in the dock's viewport unless a tap names another space:
+  // two taps pair up only within the same one.
+  let lastTapSpace = null
 
   function triggerDock() {
     if (DEBUG) console.log('[Dock] triggerDock called, dockVisible=', dockVisible)
@@ -679,13 +687,13 @@
 
   const DEBUG = new URLSearchParams(location.search).has('debugDock')
 
-  function handleTap(clientX, clientY) {
+  function handleTap(clientX, clientY, space = null) {
     if (dockVisible) return
     const now = Date.now()
     const dx = clientX - lastTapX
     const dy = clientY - lastTapY
     const dist = Math.round(Math.sqrt(dx * dx + dy * dy))
-    const close = dist <= DOUBLE_TAP_SLOP
+    const close = dist <= DOUBLE_TAP_SLOP && space === lastTapSpace
     const gap = now - lastTapTime
     const match = gap < DOUBLE_TAP_MS && close
     if (DEBUG) {
@@ -698,6 +706,7 @@
       lastTapTime = now
       lastTapX = clientX
       lastTapY = clientY
+      lastTapSpace = space
     }
   }
 
@@ -756,12 +765,14 @@
 
   function attachToIframe(frame) {
     const wire = () => {
-      let doc
+      let doc = null
       try {
         doc = frame.contentDocument
       } catch {
-        return // cross-origin; can't reach
+        // cross-origin; can't reach
       }
+      const app = appFrameOf(frame)
+      if (app) noteFrameReach(app, frame, doc !== null)
       if (!doc || attachedDocs.has(doc)) return
       attachedDocs.add(doc)
       attachTapListener(doc, frame)
@@ -786,10 +797,135 @@
           const nested = n.querySelectorAll && n.querySelectorAll('iframe')
           if (nested) nested.forEach((f) => attachToIframe(f))
         })
+        // A removed frame may have been the one keeping the handle up.
+        if (r.removedNodes.length > 0) updateHandle()
       }
     })
     obs.observe(root, { childList: true, subtree: true })
   }
+
+  // ─── Apps on another origin ──────────────────────────────────────────────────
+  // The listeners above cannot reach a page from another origin, so a
+  // double-tap over one goes unseen. That page may be the app itself or a
+  // frame inside it. Such a page can forward its pointerdowns instead, and
+  // while any page in the active app is out of reach and not forwarding, a
+  // tab at the dock's edge opens the dock with a single tap.
+  //
+  // A forwarded pointerdown is a message posted to the dock's window:
+  //   window.top.postMessage({ type: 'signalk-app-dock:pointerdown', x: e.clientX, y: e.clientY }, '*')
+  // It counts only from inside a frame of the active app that the listeners
+  // cannot reach, so no tap is counted twice, and all it can do is feed the
+  // double-tap detection.
+  const FORWARDED_POINTERDOWN = 'signalk-app-dock:pointerdown'
+  const FORWARD_COALESCE_MS = 50
+  // Per app frame, the frames in it (itself included) the listeners cannot
+  // reach, and which of those have forwarded a pointerdown since they loaded.
+  const unreachableFrames = new WeakMap()
+  const forwardingFrames = new WeakSet()
+  let lastForwardedAt = 0
+
+  // The app frame a frame belongs to: the frame itself, or the one holding
+  // the document it sits in, found through same-origin parents.
+  function appFrameOf(frame) {
+    let f = frame
+    while (f && f.parentElement !== $iframeContainer) {
+      const win = f.ownerDocument && f.ownerDocument.defaultView
+      f = win ? win.frameElement : null
+    }
+    return f
+  }
+
+  // Runs on every load of a frame in an app. A new document starts over:
+  // whether it forwards is not known until it does, and an app frame's new
+  // document brings its own frames.
+  function noteFrameReach(app, frame, reachable) {
+    forwardingFrames.delete(frame)
+    let frames = unreachableFrames.get(app)
+    if (frame === app || !frames) {
+      frames = new Set()
+      unreachableFrames.set(app, frames)
+    }
+    if (reachable) frames.delete(frame)
+    else frames.add(frame)
+    updateHandle()
+  }
+
+  // Frames removed from their document, or left in one that has been
+  // navigated away, are dropped as they are found.
+  function liveUnreachableFrames(app) {
+    const frames = (app && unreachableFrames.get(app)) || new Set()
+    for (const f of frames) {
+      if (!f.isConnected || !f.ownerDocument.defaultView) frames.delete(f)
+    }
+    return frames
+  }
+
+  function updateHandle() {
+    const app = $iframeContainer.querySelector('iframe.active')
+    let show = false
+    if (!dockVisible) {
+      for (const f of liveUnreachableFrames(app)) {
+        if (!forwardingFrames.has(f)) show = true
+      }
+    }
+    $dockHandle.classList.toggle('visible', show)
+  }
+
+  // Where a frame's content starts in the dock's viewport, adding up the
+  // frames it sits in.
+  function offsetInDock(frame) {
+    let x = 0
+    let y = 0
+    for (let f = frame; f; ) {
+      const r = f.getBoundingClientRect()
+      x += r.left
+      y += r.top
+      if (f.parentElement === $iframeContainer) break
+      const win = f.ownerDocument.defaultView
+      f = win ? win.frameElement : null
+    }
+    return { x, y }
+  }
+
+  function isInsideFrame(source, frameWindow) {
+    for (let w = source; w; w = w.parent) {
+      if (w === frameWindow) return true
+      if (w === w.parent) return false
+    }
+    return false
+  }
+
+  window.addEventListener('message', (e) => {
+    const data = e.data
+    if (!data || data.type !== FORWARDED_POINTERDOWN) return
+    if (!Number.isFinite(data.x) || !Number.isFinite(data.y)) return
+    const app = $iframeContainer.querySelector('iframe.active')
+    if (!app || !e.source) return
+    let from = null
+    for (const f of liveUnreachableFrames(app)) {
+      if (isInsideFrame(e.source, f.contentWindow)) from = f
+    }
+    if (!from) return
+    // A frame inside the page forwarding says nothing about taps on the page
+    // around it, so only the page's own message stops the handle.
+    if (e.source === from.contentWindow) {
+      forwardingFrames.add(from)
+      updateHandle()
+    }
+    const now = Date.now()
+    if (now - lastForwardedAt < FORWARD_COALESCE_MS) return
+    lastForwardedAt = now
+    // A frame inside the page sits somewhere the dock cannot see, so its
+    // taps keep their own coordinates and pair up only with each other.
+    if (e.source === from.contentWindow) {
+      const o = offsetInDock(from)
+      handleTap(data.x + o.x, data.y + o.y)
+    } else {
+      handleTap(data.x, data.y, e.source)
+    }
+  })
+
+  $dockHandle.addEventListener('click', triggerDock)
 
   attachTapListener(document, null)
   attachedDocs.add(document)

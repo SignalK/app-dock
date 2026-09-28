@@ -99,6 +99,66 @@ body {
   }
 }
 
+/* ─── Handle over an app on another origin ─────────────────────────────────── */
+/* The padding is the touch target; the bar itself is drawn by ::before. */
+#dock-handle {
+  position: fixed;
+  z-index: 5;
+  display: none;
+  padding: 12px 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#dock-handle.visible {
+  display: block;
+}
+
+#dock-handle::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+#dock-handle.pos-bottom {
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#dock-handle.pos-top {
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#dock-handle.pos-left {
+  left: env(safe-area-inset-left, 0px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 18px 12px;
+}
+
+#dock-handle.pos-right {
+  right: env(safe-area-inset-right, 0px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 18px 12px;
+}
+
+#dock-handle.pos-left::before,
+#dock-handle.pos-right::before {
+  width: 6px;
+  height: 56px;
+}
+
 /* ─── Backdrop ──────────────────────────────────────────────────────────────── */
 #dock-backdrop {
   position: fixed;
