@@ -44,6 +44,10 @@ React panel.
   frame in the active app has not sent its own message since it last loaded (one from a frame inside it does not count), and opens the dock with a single tap. The message
   handler accepts a message only from inside one of those frames, so no tap counts twice. Keep that check, the
   per-load reset and the coordinate check: a message must never do more than feed `handleTap()`.
+- **Taps are timed by when they happened.** Every tap reaches `handleTap()` with its event time,
+  `performance.timeOrigin + e.timeStamp` or a forwarded message's `t` (trusted only when it is a number no later than
+  the message's arrival), and both coalescing windows compare event times too. A page busy rendering can have two
+  taps handled back to back; timing them by handling splits the double-tap or drops the second tap as a duplicate.
 - **One iframe sandbox string.** `switchToApp()` and the tour's Plugin Config link in `dock.js` create iframes with the
   same `sandbox` value; keep them identical. `allow-top-navigation-by-user-activation` is what lets a dock opened inside
   a dock break out to the top window (the guard at the top of `dock.js`).

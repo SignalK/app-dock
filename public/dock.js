@@ -674,6 +674,19 @@
   // two taps pair up only within the same one.
   let lastTapSpace = null
 
+  // Taps are timed by when they happened, not when their handler ran: a page
+  // busy rendering can hold a pointerdown back long enough to split a
+  // double-tap. Times are on the clock every document in the browser shares,
+  // performance.timeOrigin plus the page's own high-resolution time.
+  function nowTime() {
+    return performance.timeOrigin + performance.now()
+  }
+
+  function eventTime(doc, e) {
+    const perf = doc.defaultView && doc.defaultView.performance
+    return perf ? perf.timeOrigin + e.timeStamp : nowTime()
+  }
+
   function triggerDock() {
     if (DEBUG) console.log('[Dock] triggerDock called, dockVisible=', dockVisible)
     if (dockVisible) return
@@ -687,15 +700,14 @@
 
   const DEBUG = new URLSearchParams(location.search).has('debugDock')
 
-  function handleTap(clientX, clientY, space = null) {
+  function handleTap(clientX, clientY, space = null, time = nowTime()) {
     if (dockVisible) return
-    const now = Date.now()
     const dx = clientX - lastTapX
     const dy = clientY - lastTapY
     const dist = Math.round(Math.sqrt(dx * dx + dy * dy))
     const close = dist <= DOUBLE_TAP_SLOP && space === lastTapSpace
-    const gap = now - lastTapTime
-    const match = gap < DOUBLE_TAP_MS && close
+    const gap = time - lastTapTime
+    const match = gap >= 0 && gap < DOUBLE_TAP_MS && close
     if (DEBUG) {
       console.log('[Dock] tap', { x: Math.round(clientX), y: Math.round(clientY), gap, dist, close, match })
     }
@@ -703,7 +715,7 @@
       lastTapTime = 0
       triggerDock()
     } else {
-      lastTapTime = now
+      lastTapTime = time
       lastTapX = clientX
       lastTapY = clientY
       lastTapSpace = space
@@ -722,22 +734,23 @@
 
     // Dedupe: touchstart and pointerdown often both fire for the same gesture.
     // We accept whichever arrives first and ignore the other if it's within
-    // 50 ms (the browser's synthesized-event coalescence window).
-    let lastEventAt = 0
+    // 50 ms (the browser's synthesized-event coalescence window). The window is
+    // measured in event time: after the page stalls, two real taps can be
+    // handled back to back, and neither may be taken for the other's twin.
+    let lastEventAt = -Infinity
     const COALESCE_MS = 50
 
-    const onDown = (x, y) => {
-      const now = Date.now()
-      if (now - lastEventAt < COALESCE_MS) return
-      lastEventAt = now
-      handleTap(x, y)
+    const onDown = (x, y, time) => {
+      if (Math.abs(time - lastEventAt) < COALESCE_MS) return
+      lastEventAt = time
+      handleTap(x, y, null, time)
     }
 
     doc.addEventListener(
       'pointerdown',
       (e) => {
         const o = offset()
-        onDown(e.clientX + o.x, e.clientY + o.y)
+        onDown(e.clientX + o.x, e.clientY + o.y, eventTime(doc, e))
       },
       { passive: true, capture: true }
     )
@@ -752,7 +765,7 @@
         if (!e.touches || e.touches.length === 0) return
         const t = e.touches[0]
         const o = offset()
-        onDown(t.clientX + o.x, t.clientY + o.y)
+        onDown(t.clientX + o.x, t.clientY + o.y, eventTime(doc, e))
       },
       { passive: true, capture: true }
     )
@@ -823,7 +836,7 @@
   // loaded.
   const unreachableFrames = new WeakMap()
   const forwardingFrames = new WeakSet()
-  let lastForwardedAt = 0
+  let lastForwardedAt = -Infinity
 
   // The app frame a frame belongs to: the frame itself, or the one holding
   // the document it sits in, found through same-origin parents.
@@ -913,16 +926,19 @@
       forwardingFrames.add(from)
       updateHandle()
     }
-    const now = Date.now()
-    if (now - lastForwardedAt < FORWARD_COALESCE_MS) return
-    lastForwardedAt = now
+    // The page can say when the tap happened. Without that, or with a time
+    // that has not come yet, the message's arrival stands in for it.
+    const received = nowTime()
+    const time = Number.isFinite(data.t) && data.t <= received ? data.t : received
+    if (Math.abs(time - lastForwardedAt) < FORWARD_COALESCE_MS) return
+    lastForwardedAt = time
     // A frame inside the page sits somewhere the dock cannot see, so its
     // taps keep their own coordinates and pair up only with each other.
     if (e.source === from.contentWindow) {
       const o = offsetInDock(from)
-      handleTap(data.x + o.x, data.y + o.y)
+      handleTap(data.x + o.x, data.y + o.y, null, time)
     } else {
-      handleTap(data.x, data.y, e.source)
+      handleTap(data.x, data.y, e.source, time)
     }
   })
 
