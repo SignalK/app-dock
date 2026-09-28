@@ -108,6 +108,8 @@ body {
   padding: 12px 18px;
   border: none;
   background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
