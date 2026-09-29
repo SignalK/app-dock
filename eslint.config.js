@@ -47,7 +47,8 @@ module.exports = [
         Infinity: 'readonly',
         MutationObserver: 'readonly',
         URLSearchParams: 'readonly',
-        location: 'readonly'
+        location: 'readonly',
+        performance: 'readonly'
       }
     },
     rules: {

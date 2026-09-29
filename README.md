@@ -48,12 +48,22 @@ if (window.self !== window.top) {
   document.addEventListener(
     'pointerdown',
     (e) => {
-      window.top.postMessage({ type: 'signalk-app-dock:pointerdown', x: e.clientX, y: e.clientY }, '*')
+      window.top.postMessage(
+        {
+          type: 'signalk-app-dock:pointerdown',
+          x: e.clientX,
+          y: e.clientY,
+          t: performance.timeOrigin + e.timeStamp
+        },
+        '*'
+      )
     },
     { passive: true, capture: true }
   )
 }
 ```
+
+`t` is when the tap happened. It is optional, but a page that is busy, rendering a radar display for example, can post its messages late, and without `t` the dock can only go by when they arrive, which can split a double-tap in two.
 
 The dock accepts these messages only from a page of the app on screen that it cannot listen to itself, or a frame inside that page, and all they do is count towards a double-tap. The tab goes away once every such page has sent one. A page that loads again starts over: the tab is back until its first tap.
 
