@@ -148,13 +148,15 @@ The repo ships three cooperating surfaces:
 
 ### Icon assets
 
-If `public/app-icon.svg` changes, regenerate the 180-px apple-touch-icon:
+`public/app-icon.svg` has a transparent background: the artwork sits straight on whatever page shows it, so its colours have to read on light and dark backgrounds alike. Check a change on both before committing.
+
+The 180-px apple-touch-icon needs an opaque background, because iOS fills transparency with black, and room for the corners iOS rounds off. Regenerate it from the SVG whenever that changes:
 
 ```bash
-rsvg-convert -w 180 -h 180 public/app-icon.svg -o public/app-icon-180.png
+rsvg-convert -w 132 -h 132 public/app-icon.svg | magick - -background '#0f172a' -gravity center -extent 180x180 -alpha remove -alpha off PNG24:public/app-icon-180.png
 ```
 
-`public/app-icon-maskable.svg` is a hand-authored wrapper that places the artwork inside Android's 80% safe zone; if the main icon's layout changes meaningfully, update it by hand to match.
+`public/app-icon-maskable.svg` is hand-authored: the same artwork on the same dark slate, scaled into Android's 80% safe zone. Update it by hand when the artwork changes.
 
 ## License
 
