@@ -76,8 +76,10 @@ plugin registry read them from the package. Check with `npm pack --dry-run`.
 ## Icons
 
 `public/app-icon.svg` is the source icon: the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,
-and the dock's own logo. `public/app-icon-180.png` (apple-touch-icon) is generated from it and
-`public/app-icon-maskable.svg` is maintained by hand; see **Icon assets** in `README.md`.
+and the dock's own logo. Like every plugin logo here it has a transparent background: no tile behind the artwork, and
+colours that read on light and dark pages. `public/app-icon-180.png` (apple-touch-icon) is generated from it onto an
+opaque dark background, and `public/app-icon-maskable.svg` carries the same background and is maintained by hand; iOS
+and Android both need an opaque icon. See **Icon assets** in `README.md`.
 
 ## Tests
 
