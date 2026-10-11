@@ -136,7 +136,10 @@ publishes to npm with provenance (OIDC trusted publishing, no token).
   GitHub's `Revert "…"`. Change the gate's last alternative together with `pull-request-title-pattern` in
   `release-please-config.json`, or the release PR's merge never creates a tag.
 - **Merge the release PR once it lists your change.** release-please refreshes it a moment after each merge; a
-  release PR merged before that still ships the change (the tag is on top of it) but its notes leave it out.
+  release PR merged before that still ships the change (the tag is on top of it) but its notes leave it out. Every run
+  rebuilds it from `main` (`always-update` in `release-please-config.json`). Without that, a run that finds the same
+  version and notes leaves the branch as it is, and a version change on `main` outside it, such as a hand-cut release,
+  leaves it conflicting.
 - **Betas come from the same release PR.** _Actions → release-please → Run workflow_ with `beta` turns it into the next
   beta of the version it proposes (`1.3.3` → `1.3.3-beta.1`, numbered after any beta of that version already tagged).
   Merging it tags `vX.Y.Z-beta.N`, makes a GitHub pre-release and publishes under the npm dist-tag `beta`; `latest`
