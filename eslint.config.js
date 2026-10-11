@@ -46,6 +46,7 @@ module.exports = [
         Set: 'readonly',
         Infinity: 'readonly',
         MutationObserver: 'readonly',
+        URL: 'readonly',
         URLSearchParams: 'readonly',
         location: 'readonly',
         performance: 'readonly'

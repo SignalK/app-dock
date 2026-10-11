@@ -51,6 +51,9 @@ React panel.
 - **One iframe sandbox string.** `switchToApp()` and the tour's Plugin Config link in `dock.js` create iframes with the
   same `sandbox` value; keep them identical. `allow-top-navigation-by-user-activation` is what lets a dock opened inside
   a dock break out to the top window (the guard at the top of `dock.js`).
+- **The admin UI opens fresh.** `opensFresh()` in `dock.js` matches an app on the dock's origin whose path is under
+  `/admin`. `switchToApp()` drops its frame and loads a new one each time its tile is tapped, in both iframe modes, so
+  Settings never resumes a webapp or page opened inside it. Every other app follows `iframeMode`.
 - **Live config reload.** The dock polls the plugin every 5 s. A setting that changes how the dock is built belongs in
   `STRUCTURAL_KEYS` in `dock.js` (the page reloads); app-list changes rebuild the dock in place.
 - **New settings touch four places:** the schema in `plugin/index.js`, `DEFAULTS` in `dock.js`, the config panel in

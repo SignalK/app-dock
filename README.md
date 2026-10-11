@@ -102,6 +102,8 @@ Open **Plugin Config > App Dock** in the admin UI. The embedded configurator pro
 | `showFullscreenButton` | `false`      | Show fullscreen toggle in dock; hidden automatically where the Fullscreen API is unavailable     |
 | `showExitButton`       | `false`      | Show X button that returns to the Signal K admin UI                                              |
 
+In either `iframeMode`, the server's admin UI (an app whose URL is under `/admin/`, such as the Settings tile) opens fresh every time, at the URL its tile points to. A webapp or page opened from inside the admin UI does not come back the next time Settings is tapped.
+
 ## Access
 
 With security enabled, what the dock offers depends on the visitor:
