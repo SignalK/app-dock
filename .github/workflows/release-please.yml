@@ -8,7 +8,15 @@ on:
   # refreshed by a docs or ci merge, and a config change is exactly such a
   # merge. This trigger re-runs it on demand, which is what rewrites an
   # outstanding release pull request against the current configuration.
+  # `beta` and `stable` first set the version that release pull request
+  # proposes; see the prepare job.
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'refresh: rebuild the release PR. beta: make it the next beta. stable: make it the stable release of the current beta.'
+        type: choice
+        options: [refresh, beta, stable]
+        default: refresh
 
 permissions: {}
 
@@ -72,9 +80,92 @@ jobs:
             echo "No releasable commit in this push; release-please not run."
           fi
 
+  # The release PR proposes a stable version from a stable one (1.3.2 ->
+  # 1.3.3) and the next beta from a beta (1.3.3-beta.1 -> 1.3.3-beta.2):
+  # `versioning: prerelease` with `prerelease: true` in
+  # release-please-config.json. A manual run with `beta` or `stable` moves it
+  # between the two. release-please takes the version from a `Release-As:`
+  # footer on a commit since the last release, so this job pushes an empty
+  # commit carrying one. The footer holds for every later run until that
+  # release is made. A push made with GITHUB_TOKEN starts no workflow, so
+  # release-please runs on it in this same run, below.
+  prepare:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release != 'refresh' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the tags and every commit since the last release
+
+      - name: Set the version the release PR proposes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::Run this workflow from main."
+            exit 1
+          fi
+          current=$(jq -r '."."' .release-please-manifest.json)
+          stable="${current%%-*}"
+
+          if [ "$RELEASE" = beta ]; then
+            if [ "$current" != "$stable" ]; then
+              echo "::error::$current is a beta, so the release PR already proposes the next beta. Merge it, or run this with stable."
+              exit 1
+            fi
+            # The stable version release-please worked out from the commits
+            # since v$current, as the open release PR's title carries it.
+            title=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --label 'autorelease: pending' --json title --jq '.[0].title // ""')
+            target="${title#"chore(release): "}"
+            if ! printf '%s' "$target" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+              echo "::error::No open release PR proposes a stable version (found '$title'), so there is nothing since v$current to release."
+              exit 1
+            fi
+            # Betas are numbered from 1, after any beta of this version
+            # already tagged, by hand or not.
+            last=$(git tag -l "v$target-beta.*" | sed "s/^v$target-beta\.//" | grep -E '^[0-9]+$' | sort -n | tail -n 1 || true)
+            version="$target-beta.$(( ${last:-0} + 1 ))"
+            subject="chore: release $version as a beta"
+          else
+            if [ "$current" = "$stable" ]; then
+              echo "::error::$current is already a stable release; there is no beta to promote."
+              exit 1
+            fi
+            # The stable release is main as it is now, so a change users get
+            # that was merged after the beta would ship without ever being in
+            # one. The pattern is the gate's, without the release PR title.
+            untested=$(git log "v$current..HEAD" --no-merges --format=%s \
+              | grep -E '^((feat|fix|perf|revert)(\([^)]*\))?!?: |[a-z]+(\([^)]*\))?!: )' || true)
+            if [ -n "$untested" ]; then
+              echo "::error::main has changes since v$current that were never in a beta. Merge the release PR for the next beta first."
+              {
+                echo "### Not promoted: changes since v$current"
+                echo
+                printf '%s\n' "$untested" | sed 's/^/- /'
+              } >> "$GITHUB_STEP_SUMMARY"
+              printf '%s\n' "$untested"
+              exit 1
+            fi
+            version="$stable"
+            subject="chore: promote $current to $stable"
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "$subject" -m "Release-As: $version"
+          git push origin HEAD:main
+          echo "The release PR now proposes $version." >> "$GITHUB_STEP_SUMMARY"
+
   release-please:
-    needs: gate
-    if: ${{ needs.gate.outputs.releasable == 'true' }}
+    needs: [gate, prepare]
+    # On a push or a refresh, prepare is skipped, and a skipped job skips
+    # every job that needs it unless the condition checks a status itself.
+    if: ${{ !cancelled() && needs.gate.outputs.releasable == 'true' && needs.prepare.result != 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -98,7 +189,9 @@ jobs:
   # the right to start workflows is held by nothing but this one command.
   publish:
     needs: release-please
-    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    # !cancelled(): a skipped prepare above release-please skips this job too
+    # unless the condition checks a status itself.
+    if: ${{ !cancelled() && needs.release-please.outputs.releases_created == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -137,9 +137,18 @@ publishes to npm with provenance (OIDC trusted publishing, no token).
   `release-please-config.json`, or the release PR's merge never creates a tag.
 - **Merge the release PR once it lists your change.** release-please refreshes it a moment after each merge; a
   release PR merged before that still ships the change (the tag is on top of it) but its notes leave it out.
-- **Pre-releases are cut by hand:** a `chore(release): X.Y.Z-beta.N` PR, then an annotated tag `vX.Y.Z-beta.N` pushed
-  on its merge commit. `release_on_tag.yml` creates their Release itself and publishes under the npm dist-tag `alpha`,
-  `beta` or `rc` that the tag contains.
+- **Betas come from the same release PR.** _Actions → release-please → Run workflow_ with `beta` turns it into the next
+  beta of the version it proposes (`1.3.3` → `1.3.3-beta.1`, numbered after any beta of that version already tagged).
+  Merging it tags `vX.Y.Z-beta.N`, makes a GitHub pre-release and publishes under the npm dist-tag `beta`; `latest`
+  stays. While the last release is a beta, every releasable merge moves the release PR to the next beta (`-beta.2`; a
+  `feat` moves it to the next minor's beta). _Run workflow_ with `stable` turns it into the stable release of that beta
+  (`1.3.3-beta.2` → `1.3.3`), and refuses while `main` holds a change users get that was never in a beta. Both push an
+  empty commit with a `Release-As:` footer to `main`. `refresh`, the default, only rebuilds the release PR. This is
+  `versioning: prerelease` with `prerelease: true` in `release-please-config.json`; without it a `fix` after a beta
+  would propose `1.3.4-beta.2`. Leave `prerelease-type` unset: with it, a stable version would bump to a beta too.
+- **A tag pushed by hand still publishes** (`rc`, `alpha`, or a release outside release-please): `release_on_tag.yml`
+  creates its Release and takes the npm dist-tag from the tag. After a stable release by hand, set
+  `.release-please-manifest.json` to it, or the release PR proposes the same version again.
 
 ## File layout
 
