@@ -6,6 +6,7 @@
   "prerelease": true,
   "changelog-type": "github",
   "skip-changelog": true,
+  "always-update": true,
   "pull-request-title-pattern": "chore(release): ${version}",
   "packages": {
     ".": {}
