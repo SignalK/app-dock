@@ -1,8 +1,8 @@
-# Publishes the tag it runs on to npm. Release tags come from release-please:
-# merging its release PR creates the tag and the GitHub Release, then
-# release-please.yml dispatches this workflow on the tag. Pre-release tags
-# (-beta.N, -rc.N, -alpha.N) are pushed by hand, and only a pushed tag gets
-# its GitHub Release created here.
+# Publishes the tag it runs on to npm. Release tags, betas included, come
+# from release-please: merging its release PR creates the tag and the GitHub
+# Release, then release-please.yml dispatches this workflow on the tag. A tag
+# pushed by hand (-beta.N, -rc.N, -alpha.N or stable) still works, and only
+# such a pushed tag gets its GitHub Release created here.
 name: 'Release on tag'
 
 on:
