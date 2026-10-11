@@ -614,6 +614,18 @@
   }
 
   // ─── Switch to app ────────────────────────────────────────────────────────────
+  // The server's admin UI leads anywhere: into a webapp, a plugin's page or
+  // another of its own screens. Its tile opens it fresh every time, at the
+  // URL the tile points to, so it never resumes wherever it was left.
+  function opensFresh(app) {
+    try {
+      const url = new URL(app.url, window.location.href)
+      return url.origin === window.location.origin && /^\/admin(\/|$)/.test(url.pathname)
+    } catch {
+      return false
+    }
+  }
+
   function switchToApp(index) {
     const app = cfg.apps[index]
     if (!app) return
@@ -626,13 +638,19 @@
       el.classList.toggle('active', el.dataset.index === String(index))
     })
 
-    const alreadyLoaded = !!iframes[app.url]
+    const fresh = opensFresh(app)
+    const alreadyLoaded = !fresh && !!iframes[app.url]
 
     if (cfg.iframeMode === 'destroy') {
       $iframeContainer.innerHTML = ''
       Object.keys(iframes).forEach((k) => delete iframes[k])
     } else {
       Object.values(iframes).forEach((f) => f.classList.remove('active'))
+    }
+
+    if (fresh && iframes[app.url]) {
+      iframes[app.url].remove()
+      delete iframes[app.url]
     }
 
     if (!iframes[app.url]) {
