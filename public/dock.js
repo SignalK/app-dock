@@ -626,6 +626,18 @@
     }
   }
 
+  // Reloads the frame at the page it is on now. A frame on another origin
+  // refuses access to its location, so it starts over at the app's URL.
+  function reloadFrame($frame, app) {
+    showLoading(app.label)
+    $frame.addEventListener('load', hideLoading, { once: true })
+    try {
+      $frame.contentWindow.location.reload()
+    } catch {
+      $frame.src = app.url
+    }
+  }
+
   function switchToApp(index) {
     const app = cfg.apps[index]
     if (!app) return
@@ -640,6 +652,16 @@
 
     const fresh = opensFresh(app)
     const alreadyLoaded = !fresh && !!iframes[app.url]
+
+    // Tapping the app already on screen reloads it where it is, so a webapp
+    // updated on the server is picked up without restarting the browser.
+    // destroy mode and fresh apps get a new frame below anyway.
+    if (alreadyLoaded && cfg.iframeMode !== 'destroy' && iframes[app.url].classList.contains('active')) {
+      reloadFrame(iframes[app.url], app)
+      updateHandle()
+      hideDock()
+      return
+    }
 
     if (cfg.iframeMode === 'destroy') {
       $iframeContainer.innerHTML = ''

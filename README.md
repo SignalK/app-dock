@@ -31,7 +31,7 @@ Open: `http://your-sk-server:3000/@signalk/app-dock/`
 
 ## Usage
 
-**Double-tap anywhere** on the screen to open the dock. Tap an app icon to switch. The dock auto-dismisses after selection, or tap the backdrop to close it. Double-click works the same way for mouse users.
+**Double-tap anywhere** on the screen to open the dock. Tap an app icon to switch. Tap the icon of the app already on screen to reload it, for example after the app was updated on the server. The dock auto-dismisses after selection, or tap the backdrop to close it. Double-click works the same way for mouse users.
 
 Tip: double-tapping a clickable element in the underlying webapp will activate that element once before the dock opens -- aim double-taps at non-interactive regions (maps, gauge backgrounds, empty space).
 
