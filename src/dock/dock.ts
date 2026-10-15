@@ -1,4 +1,5 @@
 import type { DockPosition, IframeMode } from '../plugin/schema'
+import { ICONS, type IconName } from './icons'
 
 // An app on the dock: an entry of the plugin's /settings, or of the saved
 // configuration when /settings has none.
@@ -252,7 +253,7 @@ function isFiniteNumber(v: unknown): v is number {
   function updateNightModeIcon() {
     const icon = document.querySelector('.dock-item-nightmode .dock-icon')
     if (!icon) return
-    icon.textContent = currentMode === 'night' ? '\u{1F319}' : '\u2600\uFE0F'
+    icon.innerHTML = ICONS[currentMode === 'night' ? 'moon' : 'sun']
     const label = document.querySelector('.dock-item-nightmode .dock-label')
     if (label) label.textContent = currentMode === 'night' ? 'Day mode' : 'Night mode'
   }
@@ -300,7 +301,7 @@ function isFiniteNumber(v: unknown): v is number {
   function updateFullscreenIcon() {
     const icon = document.querySelector('.dock-item-fullscreen .dock-icon')
     if (!icon) return
-    icon.textContent = isFullscreen() ? '\u2922' : '\u26F6'
+    icon.innerHTML = ICONS[isFullscreen() ? 'exitFullscreen' : 'fullscreen']
     const label = document.querySelector('.dock-item-fullscreen .dock-label')
     if (label) label.textContent = isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'
   }
@@ -371,7 +372,7 @@ function isFiniteNumber(v: unknown): v is number {
   }
 
   // ─── Utility item builder ─────────────────────────────────────────────────────
-  function createUtilityItem(className: string, icon: string, label: string, onClick: () => void) {
+  function createUtilityItem(className: string, icon: IconName, label: string, onClick: () => void) {
     const sz = cfg.iconSize
     const radius = Math.round(sz * 0.25) + 'px'
     const lblCls = labelClass()
@@ -384,8 +385,7 @@ function isFiniteNumber(v: unknown): v is number {
     $icon.style.width = sz + 'px'
     $icon.style.height = sz + 'px'
     $icon.style.borderRadius = radius
-    $icon.style.fontSize = Math.round(sz * 0.48) + 'px'
-    $icon.textContent = icon
+    $icon.innerHTML = ICONS[icon]
 
     const $dot = document.createElement('div')
     $dot.className = 'dock-dot'
@@ -429,12 +429,12 @@ function isFiniteNumber(v: unknown): v is number {
     const showNightMode = cfg.showNightModeButton && nightModeUsable
     if (showNightMode) {
       $dockInner.appendChild(
-        createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', () => void toggleNightMode())
+        createUtilityItem('dock-item-nightmode', 'sun', 'Night mode', () => void toggleNightMode())
       )
     }
 
     if (cfg.showFullscreenButton && fullscreenSupported()) {
-      $dockInner.appendChild(createUtilityItem('dock-item-fullscreen', '\u26F6', 'Fullscreen', toggleFullscreen))
+      $dockInner.appendChild(createUtilityItem('dock-item-fullscreen', 'fullscreen', 'Fullscreen', toggleFullscreen))
     }
 
     if (showNightMode || (cfg.showFullscreenButton && fullscreenSupported())) {
@@ -498,7 +498,7 @@ function isFiniteNumber(v: unknown): v is number {
     if (cfg.showExitButton) {
       $dockInner.appendChild(createSeparator())
       $dockInner.appendChild(
-        createUtilityItem('dock-item-exit', '\u2715', 'Exit to Admin', () => {
+        createUtilityItem('dock-item-exit', 'close', 'Exit to Admin', () => {
           window.location.href = '/admin/'
         })
       )

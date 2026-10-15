@@ -458,6 +458,23 @@ body {
   background: rgba(239, 68, 68, 0.25);
 }
 
+/* The utility buttons' SVG icons (icons.ts) scale with the icon box, so they
+   follow the magnification without a font size. */
+.dock-svg-icon {
+  width: 55%;
+  height: 55%;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dock-svg-sun {
+  color: #fbbf24;
+}
+
+.dock-svg-moon {
+  color: #c7d2fe;
+}
+
 /* ─── Loading overlay ───────────────────────────────────────────────────────── */
 #loading-overlay {
   position: fixed;
