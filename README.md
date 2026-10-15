@@ -121,6 +121,10 @@ Visitors who are not admins reach the plugin's routes through `router.access()`,
 ## Development
 
 ```bash
+cd /path/to/app-dock
+npm install
+npm run build     # the server loads dist/ and serves public/; rebuild after a change
+
 cd ~/.signalk     # or a throwaway SK config dir for dev, e.g. ~/.signalk-app-dock
 npm link /path/to/app-dock
 ```
@@ -135,30 +139,36 @@ PORT=4000 npm start -- -c ~/.signalk-app-dock
 
 The repo ships three cooperating surfaces:
 
-- **`plugin/index.js`** -- CommonJS SK-server plugin. Registers the schema, seeds default apps on first run, exposes HTTP endpoints for the dock and config panel, and owns the `environment.mode` PUT handler.
-- **`public/dock.js` + `dock.css` + `index.html`** -- the dock UI itself. Plain JS, served as-is. **No build step**: edit and reload the browser.
-- **`src/configpanel/`** -- React 19 component exposed to the admin UI via Webpack Module Federation. Rebuild with `npm run build:config` after changes here; output lands in `public/remoteEntry.js` and companion chunks.
+- **`src/plugin/`** -- the SK-server plugin, an ES module compiled by `tsc` to `dist/plugin/`. Defines the configuration schema with TypeBox, seeds default apps on first run, exposes HTTP endpoints for the dock and config panel, and owns the `environment.mode` PUT handler.
+- **`src/dock/`** -- the dock UI (`index.html`, `dock.ts`, `dock.css`) and the standalone configurator (`config.html`, `config.ts`), built by Vite into `public/`, which the server serves at `/@signalk/app-dock/`. `src/dock/static/` holds the icons and the web manifest, copied as they are.
+- **`src/configpanel/`** -- React 19 component exposed to the admin UI via Module Federation (`@module-federation/vite`), built into `public/remoteEntry.js` and `public/configpanel/`. It uses the admin UI's own React, which signalk-server 2.27 and later expose.
+
+Everything is strict TypeScript. Vite only transpiles, so both Vite builds run the type checker (`vite-plugin-checker`) and fail on a type error. `public/` and `dist/` are build output and not committed; `npm run build` creates them.
 
 ### Scripts
 
 | Command                | Description                                                       |
 | ---------------------- | ----------------------------------------------------------------- |
-| `npm test`             | Run plugin tests (`node --test`)                                  |
+| `npm run build`        | Build the plugin, the dock pages and the config panel             |
+| `npm run build:server` | Compile the plugin and its tests to `dist/`                       |
+| `npm run build:dock`   | Build the dock pages into `public/` (empties it first)            |
+| `npm run build:config` | Build the admin UI config panel into `public/`                    |
+| `npm test`             | Run the plugin tests (`node --test`) against `dist/`; build first |
 | `npm run format`       | Prettier + ESLint fix                                             |
+| `npm run format:check` | Prettier check + ESLint, as CI runs them                          |
 | `npm run lint`         | ESLint check                                                      |
-| `npm run build:config` | Rebuild the admin UI config panel (required after `src/` changes) |
 
 ### Icon assets
 
-`public/app-icon.svg` has a transparent background: the artwork sits straight on whatever page shows it, so its colours have to read on light and dark backgrounds alike. Check a change on both before committing.
+`src/dock/static/app-icon.svg` has a transparent background: the artwork sits straight on whatever page shows it, so its colours have to read on light and dark backgrounds alike. Check a change on both before committing.
 
 The 180-px apple-touch-icon needs an opaque background, because iOS fills transparency with black, and room for the corners iOS rounds off. Regenerate it from the SVG whenever that changes:
 
 ```bash
-rsvg-convert -w 132 -h 132 public/app-icon.svg | magick - -background '#0f172a' -gravity center -extent 180x180 -alpha remove -alpha off PNG24:public/app-icon-180.png
+rsvg-convert -w 132 -h 132 src/dock/static/app-icon.svg | magick - -background '#0f172a' -gravity center -extent 180x180 -alpha remove -alpha off PNG24:src/dock/static/app-icon-180.png
 ```
 
-`public/app-icon-maskable.svg` is hand-authored: the same artwork on the same dark slate, scaled into Android's 80% safe zone. Update it by hand when the artwork changes.
+`src/dock/static/app-icon-maskable.svg` is hand-authored: the same artwork on the same dark slate, scaled into Android's 80% safe zone. Update it by hand when the artwork changes.
 
 ## License
 

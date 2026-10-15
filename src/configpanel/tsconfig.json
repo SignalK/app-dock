@@ -1,0 +1,28 @@
+{
+  // The config panel is a browser bundle that Vite builds without checking
+  // types. vite-plugin-checker runs this config during `vite build` and fails
+  // the build on a type error. DOM and JSX live here rather than in the root
+  // tsconfig, so the server plugin cannot reference `document` and still
+  // typecheck.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Matches @vitejs/plugin-react's automatic runtime, which vite.configpanel.config.ts
+    // aliases to host-shim/react-jsx-runtime.ts.
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    // Vite compiles one file at a time with no type information.
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["."]
+}

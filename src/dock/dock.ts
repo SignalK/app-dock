@@ -1,6 +1,64 @@
-;(async function DockApp() {
-  'use strict'
+import type { DockPosition, IframeMode } from '../plugin/schema'
 
+// An app on the dock: an entry of the plugin's /settings, or of the saved
+// configuration when /settings has none.
+interface DockApp {
+  url: string
+  label: string
+  icon?: string | null
+  color?: string | null
+  autostart?: boolean
+  enabled?: boolean
+}
+
+interface DockConfig {
+  position: DockPosition
+  iframeMode: IframeMode
+  iconSize: number
+  magnification: boolean
+  magnificationScale: number
+  showNightModeButton: boolean
+  showFullscreenButton: boolean
+  showExitButton: boolean
+  tourDismissed?: boolean
+  apps: DockApp[]
+}
+
+interface LoginStatus {
+  authenticationRequired?: boolean
+  status?: string
+  userLevel?: string
+}
+
+// A pointerdown forwarded by a page on another origin (see "Apps on another
+// origin" below).
+interface ForwardedPointerdown {
+  type?: unknown
+  x?: unknown
+  y?: unknown
+  t?: unknown
+}
+
+interface Point {
+  x: number
+  y: number
+}
+
+// Coordinates are in the dock's viewport unless a tap names another space:
+// the window of the frame that forwarded it.
+type TapSpace = MessageEventSource | null
+
+function byId<T extends HTMLElement = HTMLElement>(id: string): T {
+  const el = document.getElementById(id)
+  if (!el) throw new Error(`[Dock] #${id} is missing from index.html`)
+  return el as T
+}
+
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v)
+}
+
+;(async function DockApp() {
   // Bail out if we're running inside another iframe. This prevents the
   // dock-in-dock loop when the dock is opened via its own Settings tile /
   // the admin UI's Webapps tab / any other embed path. Same-origin redirect
@@ -11,7 +69,7 @@
   if (window.self !== window.top) {
     const dockUrl = window.location.href
     try {
-      window.top.location.replace(dockUrl)
+      window.top?.location.replace(dockUrl)
     } catch {
       // Cross-origin parent or missing top-nav sandbox permission.
     }
@@ -29,7 +87,7 @@
     return
   }
 
-  const DEFAULTS = {
+  const DEFAULTS: DockConfig = {
     position: 'bottom',
     iframeMode: 'keep-alive',
     iconSize: 56,
@@ -47,7 +105,7 @@
   // unless it allows read-only access. Mirrors the server-side DEFAULT_APPS
   // in plugin/index.js so the demo at demo.signalk.org behaves sensibly for
   // non-admin visitors.
-  const NO_ADMIN_DEFAULTS = {
+  const NO_ADMIN_DEFAULTS: Partial<DockConfig> = {
     showNightModeButton: true,
     apps: [
       {
@@ -92,7 +150,7 @@
     try {
       const res = await fetch(url)
       if (res.ok) {
-        const data = await res.json()
+        const data: LoginStatus = await res.json()
         const authOff = data.authenticationRequired === false
         const level = data.status === 'loggedIn' ? data.userLevel : undefined
         noAdminAccess = !authOff && level !== 'admin'
@@ -108,7 +166,7 @@
   // with the enabled apps resolved. The plugin opens this route to every user
   // with read access on signalk-server 2.31 and later. Null when the route
   // refuses this visitor or answers without an app list.
-  async function fetchSharedConfig() {
+  async function fetchSharedConfig(): Promise<DockConfig | null> {
     try {
       const res = await fetch('/plugins/signalk-app-dock/settings')
       if (!res.ok) return null
@@ -120,7 +178,7 @@
   }
 
   // ─── Load config from plugin endpoints ───────────────────────────────────────
-  let cfg = { ...DEFAULTS }
+  let cfg: DockConfig = { ...DEFAULTS }
   // Whether the dock keeps calling the plugin's routes after loading: always
   // for an admin, and for anyone else once /settings has served them the dock
   // (the plugin opens /settings and /mode to the same users).
@@ -137,7 +195,7 @@
       ])
       if (configRes.ok) {
         const data = await configRes.json()
-        const pluginCfg = data.configuration || data
+        const pluginCfg: Partial<DockConfig> = data.configuration || data
         cfg = { ...DEFAULTS, ...pluginCfg }
       }
       if (settingsRes.ok) {
@@ -156,19 +214,19 @@
   }
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
-  const $iframeContainer = document.getElementById('iframe-container')
-  const $backdrop = document.getElementById('dock-backdrop')
-  const $dock = document.getElementById('dock')
-  const $dockInner = document.getElementById('dock-inner')
-  const $loadingOverlay = document.getElementById('loading-overlay')
-  const $loadingLabel = document.getElementById('loading-label')
+  const $iframeContainer = byId('iframe-container')
+  const $backdrop = byId('dock-backdrop')
+  const $dock = byId('dock')
+  const $dockInner = byId('dock-inner')
+  const $loadingOverlay = byId('loading-overlay')
+  const $loadingLabel = byId('loading-label')
   const $idleHint = document.getElementById('idle-hint')
-  const $idleHintText = document.getElementById('idle-hint-text')
-  const $dockHandle = document.getElementById('dock-handle')
+  const $idleHintText = byId('idle-hint-text')
+  const $dockHandle = byId('dock-handle')
 
   // ─── State ───────────────────────────────────────────────────────────────────
   let dockVisible = false
-  const iframes = {}
+  const iframes: Record<string, HTMLIFrameElement> = {}
 
   // ─── Night mode state ────────────────────────────────────────────────────────
   let currentMode = 'day'
@@ -182,7 +240,7 @@
     try {
       const res = await fetch('/plugins/signalk-app-dock/mode')
       if (res.ok) {
-        const data = await res.json()
+        const data: { value?: string } = await res.json()
         currentMode = data.value || 'day'
         updateNightModeIcon()
       }
@@ -267,7 +325,7 @@
     if ($version) {
       fetch('/skServer/webapps')
         .then((r) => r.json())
-        .then((apps) => {
+        .then((apps: { name: string; version: string }[]) => {
           const me = apps.find((a) => a.name === '@signalk/app-dock')
           if (me) $version.textContent = 'v' + me.version
         })
@@ -313,7 +371,7 @@
   }
 
   // ─── Utility item builder ─────────────────────────────────────────────────────
-  function createUtilityItem(className, icon, label, onClick) {
+  function createUtilityItem(className: string, icon: string, label: string, onClick: () => void) {
     const sz = cfg.iconSize
     const radius = Math.round(sz * 0.25) + 'px'
     const lblCls = labelClass()
@@ -384,7 +442,7 @@
     cfg.apps.forEach((app, i) => {
       const $item = document.createElement('div')
       $item.className = 'dock-item'
-      $item.dataset.index = i
+      $item.dataset.index = String(i)
 
       const $icon = document.createElement('div')
       $icon.className = 'dock-icon'
@@ -453,13 +511,14 @@
   let magScrubbed = false
   let magTouchStartAxis = 0
 
-  function applyMagnification(pointerPos) {
-    const items = $dockInner.querySelectorAll('.dock-item')
+  function applyMagnification(pointerPos: Point) {
+    const items = $dockInner.querySelectorAll<HTMLElement>('.dock-item')
     let closestIdx = -1
     let closestDist = Infinity
 
     items.forEach((item, i) => {
-      const icon = item.querySelector('.dock-icon')
+      const icon = item.querySelector<HTMLElement>('.dock-icon')
+      if (!icon) return
       const rect = item.getBoundingClientRect()
       const center = isVertical ? rect.top + rect.height / 2 : rect.left + rect.width / 2
       const p = isVertical ? pointerPos.y : pointerPos.x
@@ -492,11 +551,12 @@
   }
 
   function resetMagnification() {
-    const items = $dockInner.querySelectorAll('.dock-item')
+    const items = $dockInner.querySelectorAll<HTMLElement>('.dock-item')
     const sz = cfg.iconSize
 
     items.forEach((item) => {
-      const icon = item.querySelector('.dock-icon')
+      const icon = item.querySelector<HTMLElement>('.dock-icon')
+      if (!icon) return
       icon.classList.add('settling')
       icon.style.width = sz + 'px'
       icon.style.height = sz + 'px'
@@ -604,7 +664,7 @@
   })
 
   // ─── Loading overlay helpers ──────────────────────────────────────────────────
-  function showLoading(label) {
+  function showLoading(label: string) {
     $loadingLabel.textContent = `Loading ${label}\u2026`
     $loadingOverlay.classList.add('visible')
   }
@@ -614,10 +674,16 @@
   }
 
   // ─── Switch to app ────────────────────────────────────────────────────────────
+  // Every app frame, and the tour's Plugin Config frame, gets this sandbox.
+  // allow-top-navigation-by-user-activation lets a dock opened inside a dock
+  // break out to the top window (the guard at the top of this file).
+  const FRAME_SANDBOX =
+    'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation'
+
   // The server's admin UI leads anywhere: into a webapp, a plugin's page or
   // another of its own screens. Its tile opens it fresh every time, at the
   // URL the tile points to, so it never resumes wherever it was left.
-  function opensFresh(app) {
+  function opensFresh(app: DockApp): boolean {
     try {
       const url = new URL(app.url, window.location.href)
       return url.origin === window.location.origin && /^\/admin(\/|$)/.test(url.pathname)
@@ -628,17 +694,17 @@
 
   // Reloads the frame at the page it is on now. A frame on another origin
   // refuses access to its location, so it starts over at the app's URL.
-  function reloadFrame($frame, app) {
+  function reloadFrame($frame: HTMLIFrameElement, app: DockApp) {
     showLoading(app.label)
     $frame.addEventListener('load', hideLoading, { once: true })
     try {
-      $frame.contentWindow.location.reload()
+      $frame.contentWindow?.location.reload()
     } catch {
       $frame.src = app.url
     }
   }
 
-  function switchToApp(index) {
+  function switchToApp(index: number) {
     const app = cfg.apps[index]
     if (!app) return
 
@@ -646,7 +712,7 @@
 
     // The night-mode and fullscreen buttons are .dock-items too; only app
     // items carry a data-index.
-    document.querySelectorAll('.dock-item').forEach((el) => {
+    document.querySelectorAll<HTMLElement>('.dock-item').forEach((el) => {
       el.classList.toggle('active', el.dataset.index === String(index))
     })
 
@@ -680,8 +746,7 @@
 
       const $frame = document.createElement('iframe')
       $frame.allow = 'fullscreen; geolocation'
-      $frame.sandbox =
-        'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation'
+      $frame.setAttribute('sandbox', FRAME_SANDBOX)
       $frame.style.touchAction = 'auto'
 
       $frame.addEventListener('load', hideLoading, { once: true })
@@ -712,7 +777,7 @@
   let lastTapY = 0
   // Coordinates are in the dock's viewport unless a tap names another space:
   // two taps pair up only within the same one.
-  let lastTapSpace = null
+  let lastTapSpace: TapSpace = null
 
   // Taps are timed by when they happened, not when their handler ran: a page
   // busy rendering can hold a pointerdown back long enough to split a
@@ -722,7 +787,7 @@
     return performance.timeOrigin + performance.now()
   }
 
-  function eventTime(doc, e) {
+  function eventTime(doc: Document, e: Event): number {
     const perf = doc.defaultView && doc.defaultView.performance
     return perf ? perf.timeOrigin + e.timeStamp : nowTime()
   }
@@ -740,7 +805,7 @@
 
   const DEBUG = new URLSearchParams(location.search).has('debugDock')
 
-  function handleTap(clientX, clientY, space = null, time = nowTime()) {
+  function handleTap(clientX: number, clientY: number, space: TapSpace = null, time = nowTime()) {
     if (dockVisible) return
     const dx = clientX - lastTapX
     const dy = clientY - lastTapY
@@ -762,11 +827,13 @@
     }
   }
 
-  function attachTapListener(doc, frameEl) {
-    if (!doc || doc.__dockListenersAttached) return
-    doc.__dockListenersAttached = true
+  const listenedDocs = new WeakSet<Document>()
 
-    const offset = () => {
+  function attachTapListener(doc: Document, frameEl: HTMLIFrameElement | null) {
+    if (listenedDocs.has(doc)) return
+    listenedDocs.add(doc)
+
+    const offset = (): Point => {
       if (!frameEl) return { x: 0, y: 0 }
       const r = frameEl.getBoundingClientRect()
       return { x: r.left, y: r.top }
@@ -780,7 +847,7 @@
     let lastEventAt = -Infinity
     const COALESCE_MS = 50
 
-    const onDown = (x, y, time) => {
+    const onDown = (x: number, y: number, time: number) => {
       if (Math.abs(time - lastEventAt) < COALESCE_MS) return
       lastEventAt = time
       handleTap(x, y, null, time)
@@ -814,11 +881,11 @@
   // Recursively attach to iframes at any nesting depth. Webapps like KIP
   // embed other webapps (e.g. FSK) in their own iframes, so we walk the tree
   // and observe each same-origin contentDocument for future iframe additions.
-  const attachedDocs = new WeakSet()
+  const attachedDocs = new WeakSet<Document>()
 
-  function attachToIframe(frame) {
+  function attachToIframe(frame: HTMLIFrameElement) {
     const wire = () => {
-      let doc = null
+      let doc: Document | null = null
       try {
         doc = frame.contentDocument
       } catch {
@@ -835,7 +902,7 @@
     wire()
   }
 
-  function scanAndObserveDoc(doc) {
+  function scanAndObserveDoc(doc: Document) {
     // Attach to iframes already in this document.
     doc.querySelectorAll('iframe').forEach((f) => attachToIframe(f))
 
@@ -843,12 +910,14 @@
     const root = doc.documentElement || doc.body || doc
     const obs = new MutationObserver((records) => {
       for (const r of records) {
-        r.addedNodes.forEach((n) => {
-          if (!n || n.nodeType !== 1) return
-          if (n.tagName === 'IFRAME') attachToIframe(n)
+        r.addedNodes.forEach((node) => {
+          if (!node || node.nodeType !== Node.ELEMENT_NODE) return
+          // An element from a frame's document fails instanceof checks against
+          // this window's classes, so it is told apart by its tag name.
+          const n = node as Element
+          if (n.tagName === 'IFRAME') attachToIframe(n as HTMLIFrameElement)
           // Descendants: catch iframes added as part of a subtree.
-          const nested = n.querySelectorAll && n.querySelectorAll('iframe')
-          if (nested) nested.forEach((f) => attachToIframe(f))
+          n.querySelectorAll('iframe').forEach((f) => attachToIframe(f))
         })
         // A removed frame may have been the one keeping the handle up.
         if (r.removedNodes.length > 0) updateHandle()
@@ -874,17 +943,17 @@
   // Per app frame, the frames in it (itself included) the listeners cannot
   // reach, and which of those have sent a pointerdown of their own since they
   // loaded.
-  const unreachableFrames = new WeakMap()
-  const forwardingFrames = new WeakSet()
+  const unreachableFrames = new WeakMap<HTMLIFrameElement, Set<HTMLIFrameElement>>()
+  const forwardingFrames = new WeakSet<HTMLIFrameElement>()
   let lastForwardedAt = -Infinity
 
   // The app frame a frame belongs to: the frame itself, or the one holding
   // the document it sits in, found through same-origin parents.
-  function appFrameOf(frame) {
-    let f = frame
+  function appFrameOf(frame: HTMLIFrameElement): HTMLIFrameElement | null {
+    let f: HTMLIFrameElement | null = frame
     while (f && f.parentElement !== $iframeContainer) {
-      const win = f.ownerDocument && f.ownerDocument.defaultView
-      f = win ? win.frameElement : null
+      const win: Window | null = f.ownerDocument && f.ownerDocument.defaultView
+      f = win ? (win.frameElement as HTMLIFrameElement | null) : null
     }
     return f
   }
@@ -892,7 +961,7 @@
   // Runs on every load of a frame in an app. A new document starts over:
   // whether it forwards is not known until it does, and an app frame's new
   // document brings its own frames.
-  function noteFrameReach(app, frame, reachable) {
+  function noteFrameReach(app: HTMLIFrameElement, frame: HTMLIFrameElement, reachable: boolean) {
     forwardingFrames.delete(frame)
     let frames = unreachableFrames.get(app)
     if (frame === app || !frames) {
@@ -906,7 +975,7 @@
 
   // Frames removed from their document, or left in one that has been
   // navigated away, are dropped as they are found.
-  function liveUnreachableFrames(app) {
+  function liveUnreachableFrames(app: HTMLIFrameElement | null): Set<HTMLIFrameElement> {
     const frames = (app && unreachableFrames.get(app)) || new Set()
     for (const f of frames) {
       if (!f.isConnected || !f.ownerDocument.defaultView) frames.delete(f)
@@ -915,7 +984,7 @@
   }
 
   function updateHandle() {
-    const app = $iframeContainer.querySelector('iframe.active')
+    const app = $iframeContainer.querySelector<HTMLIFrameElement>('iframe.active')
     let show = false
     if (!dockVisible) {
       for (const f of liveUnreachableFrames(app)) {
@@ -927,35 +996,35 @@
 
   // Where a frame's content starts in the dock's viewport, adding up the
   // frames it sits in.
-  function offsetInDock(frame) {
+  function offsetInDock(frame: HTMLIFrameElement): Point {
     let x = 0
     let y = 0
-    for (let f = frame; f; ) {
+    for (let f: HTMLIFrameElement | null = frame; f;) {
       const r = f.getBoundingClientRect()
       x += r.left
       y += r.top
       if (f.parentElement === $iframeContainer) break
-      const win = f.ownerDocument.defaultView
-      f = win ? win.frameElement : null
+      const win: Window | null = f.ownerDocument.defaultView
+      f = win ? (win.frameElement as HTMLIFrameElement | null) : null
     }
     return { x, y }
   }
 
-  function isInsideFrame(source, frameWindow) {
-    for (let w = source; w; w = w.parent) {
+  function isInsideFrame(source: MessageEventSource, frameWindow: Window | null): boolean {
+    for (let w: Window | null = source as Window; w; w = w.parent) {
       if (w === frameWindow) return true
       if (w === w.parent) return false
     }
     return false
   }
 
-  window.addEventListener('message', (e) => {
-    const data = e.data
+  window.addEventListener('message', (e: MessageEvent) => {
+    const data = e.data as ForwardedPointerdown | null
     if (!data || data.type !== FORWARDED_POINTERDOWN) return
-    if (!Number.isFinite(data.x) || !Number.isFinite(data.y)) return
-    const app = $iframeContainer.querySelector('iframe.active')
+    if (!isFiniteNumber(data.x) || !isFiniteNumber(data.y)) return
+    const app = $iframeContainer.querySelector<HTMLIFrameElement>('iframe.active')
     if (!app || !e.source) return
-    let from = null
+    let from: HTMLIFrameElement | null = null
     for (const f of liveUnreachableFrames(app)) {
       if (isInsideFrame(e.source, f.contentWindow)) from = f
     }
@@ -969,7 +1038,7 @@
     // The page can say when the tap happened. Without that, or with a time
     // that has not come yet, the message's arrival stands in for it.
     const received = nowTime()
-    const time = Number.isFinite(data.t) && data.t <= received ? data.t : received
+    const time = isFiniteNumber(data.t) && data.t <= received ? data.t : received
     if (Math.abs(time - lastForwardedAt) < FORWARD_COALESCE_MS) return
     lastForwardedAt = time
     // A frame inside the page sits somewhere the dock cannot see, so its
@@ -1002,7 +1071,7 @@
 
   // Changes to any of these require a full rebuild (dock classes, magnification
   // constants, dock items, etc.) — easiest to just reload the page.
-  const STRUCTURAL_KEYS = [
+  const STRUCTURAL_KEYS: (keyof DockConfig)[] = [
     'position',
     'iframeMode',
     'iconSize',
@@ -1026,7 +1095,7 @@
         ])
         if (configRes.ok) {
           const data = await configRes.json()
-          const pluginCfg = data.configuration || data
+          const pluginCfg: Partial<DockConfig> = data.configuration || data
           next = { ...DEFAULTS, ...pluginCfg, apps: prev.apps }
         }
         if (settingsRes.ok) {
@@ -1060,12 +1129,12 @@
   const $tourDismiss = document.getElementById('tour-btn-dismiss')
 
   function hideTour() {
-    $tourOverlay.classList.remove('visible')
+    $tourOverlay?.classList.remove('visible')
     hideDock()
   }
 
   function showTour() {
-    $tourOverlay.classList.add('visible')
+    $tourOverlay?.classList.add('visible')
     showDock()
   }
 
@@ -1104,8 +1173,7 @@
         hideIdleHint()
         const $frame = document.createElement('iframe')
         $frame.allow = 'fullscreen; geolocation'
-        $frame.sandbox =
-          'allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation'
+        $frame.setAttribute('sandbox', FRAME_SANDBOX)
         $frame.style.touchAction = 'auto'
         $frame.classList.add('active')
         $iframeContainer.innerHTML = ''

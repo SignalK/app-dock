@@ -1,0 +1,22 @@
+import type * as ReactDOMNS from 'react-dom'
+
+const host = window.__SK_REACT_DOM__
+if (!host) {
+  throw new Error('App Dock: window.__SK_REACT_DOM__ is not set by the host.')
+}
+
+const d: typeof ReactDOMNS = host
+
+export default d
+export const {
+  createPortal,
+  flushSync,
+  preconnect,
+  prefetchDNS,
+  preinit,
+  preinitModule,
+  preload,
+  preloadModule,
+  unstable_batchedUpdates,
+  version
+} = d

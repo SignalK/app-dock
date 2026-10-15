@@ -6,25 +6,31 @@ in `README.md`; this file covers what a contributor needs to keep intact.
 
 ## Architecture
 
-Three surfaces ship together from one package:
+Three surfaces ship together from one package, all strict TypeScript:
 
-- **`plugin/index.js`**: the server plugin (CommonJS). It holds the schema, seeds the default apps on first start, serves
-  the dock's HTTP routes, and registers the `environment.mode` PUT handler for the night-mode button.
-- **`public/dock.js`, `dock.css`, `index.html`**: the dock itself, served as-is at `/@signalk/app-dock/`. Plain browser
-  JavaScript with **no build step**: edit and reload.
-- **`src/configpanel/`**: the React 19 config panel that the admin UI loads through Webpack Module Federation (keyword
-  `signalk-plugin-configurator`). `npm run build:config` writes `public/remoteEntry.js` and its chunks.
+- **`src/plugin/`**: the server plugin, an ES module that `tsc` compiles to `dist/plugin/` (`npm run build:server`).
+  `schema.ts` defines the configuration once with TypeBox 1.x (the unscoped `typebox` package): the object is the JSON
+  Schema the admin UI renders, and `Static<>` of it is the configuration's type, which the dock and the panel import
+  too. `index.ts` seeds the default apps on first start, serves the dock's HTTP routes, and registers the
+  `environment.mode` PUT handler for the night-mode button.
+- **`src/dock/`**: the dock (`index.html`, `dock.ts`, `dock.css`) and the older standalone configurator that the schema
+  description links to (`config.html`, `config.ts`). `npm run build:dock` (`vite.dock.config.ts`) builds them into
+  `public/`, which the server serves at `/@signalk/app-dock/`, and copies `src/dock/static/` (icons, web manifest)
+  there as it is.
+- **`src/configpanel/`**: the React 19 config panel that the admin UI loads through Module Federation (keyword
+  `signalk-plugin-configurator`). `npm run build:config` (`vite.configpanel.config.ts`, `@module-federation/vite`)
+  writes `public/remoteEntry.js` and `public/configpanel/`.
 
-`public/config.html` is an older standalone configurator that the schema description links to; the admin UI shows the
-React panel.
+Vite only transpiles. Both Vite builds run `vite-plugin-checker` with their directory's `tsconfig.json` and fail on a
+type error; the root `tsconfig.json` covers the plugin and the tests.
 
 ## Rules to keep in mind
 
 - **Seed once, never rewrite.** `start()` seeds `DEFAULT_APPS` only when the saved `apps` is not an array. An app list
   that already exists, even an empty one, is the user's and is never changed.
-- **The default app list lives in three places.** `DEFAULT_APPS` in `plugin/index.js`, `NO_ADMIN_DEFAULTS` in
-  `public/dock.js` (served to visitors the plugin's `/settings` refuses), and the welcome-tour text in
-  `public/index.html`. Change them together.
+- **The default app list lives in three places.** `DEFAULT_APPS` in `src/plugin/index.ts`, `NO_ADMIN_DEFAULTS` in
+  `src/dock/dock.ts` (served to visitors the plugin's `/settings` refuses), and the welcome-tour text in
+  `src/dock/index.html`. Change them together.
 - **`savePluginOptions` replaces the whole saved configuration.** Build every save from a complete configuration
   (`running ? pluginSettings : savedSettings()`), never from a partial object.
 - **Routes must work while the plugin is stopped.** signalk-server registers the router of every loaded plugin, enabled
@@ -32,7 +38,7 @@ React panel.
 - **Access is opt-in per route.** Routes on `router` are admin-only. `router.access('readonly' | 'readwrite')`
   (signalk-server 2.31 and later) opens a route to more users; feature-detect it (`typeof router.access === 'function'`)
   so older servers keep working admin-only. `/config` stays admin-only on every server. When access changes, update the
-  access detection at the top of `dock.js` and the **Access** table in `README.md` with it.
+  access detection at the top of `dock.ts` and the **Access** table in `README.md` with it.
 - **`/settings` is readable by every visitor with read access.** Never put credentials or anything secret in it; that
   includes app URLs.
 - **Taps pass through.** The double-tap listener is passive, never calls `preventDefault()`, and nothing covers an app
@@ -48,32 +54,35 @@ React panel.
   `performance.timeOrigin + e.timeStamp` or a forwarded message's `t` (trusted only when it is a number no later than
   the message's arrival), and both coalescing windows compare event times too. A page busy rendering can have two
   taps handled back to back; timing them by handling splits the double-tap or drops the second tap as a duplicate.
-- **One iframe sandbox string.** `switchToApp()` and the tour's Plugin Config link in `dock.js` create iframes with the
-  same `sandbox` value; keep them identical. `allow-top-navigation-by-user-activation` is what lets a dock opened inside
-  a dock break out to the top window (the guard at the top of `dock.js`).
-- **The admin UI opens fresh.** `opensFresh()` in `dock.js` matches an app on the dock's origin whose path is under
+- **One iframe sandbox string.** `switchToApp()` and the tour's Plugin Config link in `dock.ts` both set
+  `FRAME_SANDBOX`. `allow-top-navigation-by-user-activation` is what lets a dock opened inside a dock break out to the
+  top window (the guard at the top of `dock.ts`).
+- **The admin UI opens fresh.** `opensFresh()` in `dock.ts` matches an app on the dock's origin whose path is under
   `/admin`. `switchToApp()` drops its frame and loads a new one each time its tile is tapped, in both iframe modes, so
   Settings never resumes a webapp or page opened inside it. Every other app follows `iframeMode`.
 - **The active app's tile reloads it.** In keep-alive mode a frame lives as long as the dock page, so a webapp updated
   on the server would stay on its old version until the browser restarts. `switchToApp()` reloads the active app's frame
   at the page it is on (`reloadFrame()`); a frame on another origin starts over at the app's URL.
 - **Live config reload.** The dock polls the plugin every 5 s. A setting that changes how the dock is built belongs in
-  `STRUCTURAL_KEYS` in `dock.js` (the page reloads); app-list changes rebuild the dock in place.
-- **New settings touch four places:** the schema in `plugin/index.js`, `DEFAULTS` in `dock.js`, the config panel in
-  `src/configpanel/`, and the **Settings** table in `README.md`.
-- **Browser globals are declared.** ESLint lints `dock.js` as a classic script with an explicit globals list in
-  `eslint.config.js`; add a browser API there when `dock.js` starts using it.
+  `STRUCTURAL_KEYS` in `dock.ts` (the page reloads); app-list changes rebuild the dock in place.
+- **New settings touch four places:** `ConfigSchema` in `src/plugin/schema.ts`, `DockConfig` and `DEFAULTS` in
+  `dock.ts`, the config panel in `src/configpanel/`, and the **Settings** table in `README.md`. The panel's types come
+  from the schema, so the type checker flags a panel that misses a new field's type; `dock.ts` declares its own
+  `DockConfig` with every field filled in.
+- **The config panel uses the admin UI's React.** `vite.configpanel.config.ts` aliases `react`, `react-dom` and the JSX
+  runtime to `src/configpanel/host-shim/`, which re-exports what signalk-server 2.27 and later put on `window`. Never
+  let React into the bundle or the federation share scope: two copies make every hook throw. The server injects the
+  panel's `remoteEntry.js` as an ES module only because `package.json` declares `"type": "module"`.
 
-## Build output is committed
+## Build output
 
-`public/remoteEntry.js`, `public/main.js`, `public/540.js`, `public/805.js` and `public/540.js.LICENSE.txt` are Webpack
-output and are tracked in git. After changing `src/configpanel/`, run `npm run build:config` and commit the regenerated
-files with the source change. `prepublishOnly` rebuilds them at publish time. Prettier and ESLint skip them, and ESLint
-also skips `src/`.
+`dist/` and `public/` are build output, ignored by git, Prettier and ESLint. `npm run build` creates both: the plugin
+first, then the dock (which empties `public/`), then the config panel. `prepublishOnly` runs it, so the npm package
+carries the built files; the App Store installs with `--ignore-scripts` and never builds.
 
 ## What the npm package ships
 
-`files` in `package.json` is an allowlist: `plugin/`, `public/` and `docs/screenshots/`, plus the README, LICENSE and
+`files` in `package.json` is an allowlist: `dist/plugin/`, `public/` and `docs/screenshots/`, plus the README, LICENSE and
 `package.json` that npm always adds. A file the plugin or the dock needs at runtime has to live in one of those
 directories or be added to the list. Nothing outside it is published, and a missing file shows up only in an installed
 copy, not in a checkout. `docs/screenshots/` must stay: `signalk.screenshots` points there, and the App Store and the
@@ -81,17 +90,18 @@ plugin registry read them from the package. Check with `npm pack --dry-run`.
 
 ## Icons
 
-`public/app-icon.svg` is the source icon: the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,
+`src/dock/static/app-icon.svg` is the source icon: the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,
 and the dock's own logo. Like every plugin logo here it has a transparent background: no tile behind the artwork, and
-colours that read on light and dark pages. `public/app-icon-180.png` (apple-touch-icon) is generated from it onto an
-opaque dark background, and `public/app-icon-maskable.svg` carries the same background and is maintained by hand; iOS
+colours that read on light and dark pages. `app-icon-180.png` (apple-touch-icon) is generated from it onto an
+opaque dark background, and `app-icon-maskable.svg` carries the same background and is maintained by hand; iOS
 and Android both need an opaque icon. See **Icon assets** in `README.md`.
 
 ## Tests
 
-`npm test` runs `test/plugin.test.js` with `node:test` against a mock `app` (`createMockApp()`). Cover new routes,
-settings and seeding behaviour there. `dock.js` has no automated tests; check dock changes in a browser against a
-running server (see **Development** in `README.md`).
+`npm test` runs the compiled `src/test/plugin.test.ts` (`dist/test/`) with `node:test` against a typed mock `app`
+(`createMockApp()`), calling routes through `registerRoutes()` and `request()`. It needs `npm run build` first; the
+`public files` tests check the build output. Cover new routes, settings and seeding behaviour there. `dock.ts` has no
+automated tests; check dock changes in a browser against a running server (see **Development** in `README.md`).
 
 ## Workflow conventions
 
@@ -116,11 +126,11 @@ This repo is maintained by Dirk Wahrheit.
 ```bash
 npm run format          # prettier --write + eslint --fix
 npm run format:check    # what CI runs: prettier --check + eslint
+npm run build           # tsc, then both Vite builds with their type checks
 npm test
-npm run build:config    # only when src/configpanel/ changed; commit the output
 ```
 
-CI (`.github/workflows/ci.yml`) calls signalk-server's shared `plugin-ci.yml`: install, `npm test`, plugin lifecycle
+CI (`.github/workflows/ci.yml`) calls signalk-server's shared `plugin-ci.yml`: install, `npm run build`, `npm test`, plugin lifecycle
 and schema checks, npm-pack contents, an App Store style `--ignore-scripts` install, and `npm run format:check`, which
 fails the build on any Prettier or ESLint finding.
 
@@ -161,15 +171,18 @@ publishes to npm with provenance (OIDC trusted publishing, no token).
 
 ## File layout
 
-| Path                          | Purpose                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------- |
-| `plugin/index.js`             | Plugin entry: schema, default-app seeding, routes, night-mode PUT handler.            |
-| `public/index.html`           | Dock page: idle screen, handle, dock, backdrop, loading overlay, welcome tour.        |
-| `public/dock.js`              | Dock logic: access detection, config loading and polling, iframes, double-tap, dock.  |
-| `public/dock.css`             | Dock styling, magnification, positions.                                               |
-| `public/manifest.webmanifest` | PWA manifest for Add to Home Screen.                                                  |
-| `public/config.html`          | Older standalone configurator.                                                        |
-| `src/configpanel/`            | React config panel for the admin UI (Module Federation remote).                       |
-| `webpack.config.js`           | Builds `src/configpanel/` into `public/`; shares React as a singleton with the admin. |
-| `test/plugin.test.js`         | Plugin tests (`node:test`).                                                           |
-| `docs/screenshots/`           | App Store screenshots, listed in `package.json` under `signalk.screenshots`.          |
+| Path                          | Purpose                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `src/plugin/index.ts`         | Plugin entry: default-app seeding, routes, night-mode PUT handler.                   |
+| `src/plugin/schema.ts`        | TypeBox configuration schema and the types shared with the dock and the panel.       |
+| `src/dock/index.html`         | Dock page: idle screen, handle, dock, backdrop, loading overlay, welcome tour.       |
+| `src/dock/dock.ts`            | Dock logic: access detection, config loading and polling, iframes, double-tap, dock. |
+| `src/dock/dock.css`           | Dock styling, magnification, positions.                                              |
+| `src/dock/config.html`, `.ts` | Older standalone configurator.                                                       |
+| `src/dock/static/`            | Icons and the PWA manifest, copied into `public/` unchanged.                         |
+| `src/configpanel/`            | React config panel for the admin UI (Module Federation remote) and its host shims.   |
+| `src/test/plugin.test.ts`     | Plugin tests (`node:test`), run from `dist/test/`.                                   |
+| `vite.dock.config.ts`         | Builds `src/dock/` into `public/`.                                                   |
+| `vite.configpanel.config.ts`  | Builds `src/configpanel/` into `public/`, against the admin UI's React.              |
+| `eslint.config.ts`            | ESLint flat config: typescript-eslint, React hooks rules for the panel.              |
+| `docs/screenshots/`           | App Store screenshots, listed in `package.json` under `signalk.screenshots`.         |
