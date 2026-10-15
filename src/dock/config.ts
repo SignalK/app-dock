@@ -249,7 +249,8 @@ $list.addEventListener('click', (e) => {
   if (hit?.action === 'remove') removeApp(hit.index)
 })
 
-$discoverBtn.addEventListener('click', discover)
-$saveBtn.addEventListener('click', save)
+// discover(), save() and loadCurrent() report their own errors.
+$discoverBtn.addEventListener('click', () => void discover())
+$saveBtn.addEventListener('click', () => void save())
 
-loadCurrent()
+void loadCurrent()

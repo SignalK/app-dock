@@ -460,7 +460,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
       <div style={S.sectionTitle}>Webapps</div>
       <button
         style={{ ...S.btn, ...S.btnPrimary, ...(discovering ? { opacity: 0.6 } : {}) }}
-        onClick={discover}
+        onClick={() => void discover()}
         disabled={discovering}
       >
         {discovering ? 'Discovering\u2026' : 'Discover Installed Webapps'}
@@ -589,7 +589,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
       <div style={S.actions}>
         <button
           style={{ ...S.btn, ...S.btnSave, ...(saving ? { opacity: 0.6 } : {}) }}
-          onClick={doSave}
+          onClick={() => void doSave()}
           disabled={saving}
         >
           {saving ? 'Saving\u2026' : 'Save Configuration'}

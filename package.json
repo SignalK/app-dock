@@ -29,7 +29,8 @@
     "docs/screenshots/"
   ],
   "scripts": {
-    "build": "npm run build:server && npm run build:dock && npm run build:config",
+    "build": "npm run typecheck:config && npm run build:server && npm run build:dock && npm run build:config",
+    "typecheck:config": "tsc -p tsconfig.node.json",
     "build:server": "tsc",
     "build:dock": "vite build --config vite.dock.config.ts",
     "build:config": "vite build --config vite.configpanel.config.ts",
