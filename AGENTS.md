@@ -22,7 +22,8 @@ Three surfaces ship together from one package, all strict TypeScript:
   writes `public/remoteEntry.js` and `public/configpanel/`.
 
 Vite only transpiles. Both Vite builds run `vite-plugin-checker` with their directory's `tsconfig.json` and fail on a
-type error; the root `tsconfig.json` covers the plugin and the tests.
+type error; the root `tsconfig.json` covers the plugin and the tests, and `tsconfig.node.json` the Vite and ESLint
+configs (`npm run typecheck:config`, the first step of `npm run build`).
 
 ## Rules to keep in mind
 
@@ -69,6 +70,9 @@ type error; the root `tsconfig.json` covers the plugin and the tests.
   `dock.ts`, the config panel in `src/configpanel/`, and the **Settings** table in `README.md`. The panel's types come
   from the schema, so the type checker flags a panel that misses a new field's type; `dock.ts` declares its own
   `DockConfig` with every field filled in.
+- **Promises are handled.** ESLint runs `no-floating-promises`, `no-misused-promises` and `await-thenable` with type
+  information from each directory's tsconfig. A promise that reports its own errors is passed on as `() => void f()`
+  or marked `void f()`; anything else gets a `.catch()`.
 - **The config panel uses the admin UI's React.** `vite.configpanel.config.ts` aliases `react`, `react-dom` and the JSX
   runtime to `src/configpanel/host-shim/`, which re-exports what signalk-server 2.27 and later put on `window`. Never
   let React into the bundle or the federation share scope: two copies make every hook throw. The server injects the

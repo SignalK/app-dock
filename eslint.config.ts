@@ -13,9 +13,28 @@ export default defineConfig([
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended, prettier],
-    languageOptions: { globals: globals.node },
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: {
+        // Type information for the rules below, from the tsconfig.json nearest
+        // each file. The root configs are in no project's include list.
+        projectService: { allowDefaultProject: ['vite.*.config.ts', 'eslint.config.ts'] },
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // A promise nobody awaits or handles fails silently: an unhandled fetch
+      // in the dock, a save in the panel.
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          // node:test's describe() and it() return promises the runner tracks.
+          allowForKnownSafeCalls: [{ from: 'package', name: ['describe', 'it'], package: 'node:test' }]
+        }
+      ],
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error'
     }
   },
 
@@ -26,8 +45,7 @@ export default defineConfig([
 
   {
     files: ['src/configpanel/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules: reactHooks.configs.recommended.rules
+    extends: [reactHooks.configs.flat.recommended]
   },
 
   {

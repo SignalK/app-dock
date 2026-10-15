@@ -428,7 +428,9 @@ function isFiniteNumber(v: unknown): v is number {
 
     const showNightMode = cfg.showNightModeButton && nightModeUsable
     if (showNightMode) {
-      $dockInner.appendChild(createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', toggleNightMode))
+      $dockInner.appendChild(
+        createUtilityItem('dock-item-nightmode', '\u2600\uFE0F', 'Night mode', () => void toggleNightMode())
+      )
     }
 
     if (cfg.showFullscreenButton && fullscreenSupported()) {
@@ -1061,7 +1063,7 @@ function isFiniteNumber(v: unknown): v is number {
   buildDock()
 
   if (cfg.showNightModeButton && nightModeUsable) {
-    fetchCurrentMode()
+    void fetchCurrentMode()
     setInterval(fetchCurrentMode, 5000)
   }
 
@@ -1150,13 +1152,11 @@ function isFiniteNumber(v: unknown): v is number {
     if ($tourDismiss) $tourDismiss.remove()
     document.getElementById('tour-buttons')?.style.setProperty('justify-content', 'center')
   } else if ($tourDismiss) {
-    $tourDismiss.addEventListener('click', async () => {
+    $tourDismiss.addEventListener('click', () => {
       hideTour()
-      try {
-        await fetch('/plugins/signalk-app-dock/dismiss-tour', { method: 'POST' })
-      } catch {
-        // ignore network errors; worst case user sees the tour again next reload
-      }
+      // Network errors are ignored; at worst the user sees the tour again on the
+      // next reload.
+      fetch('/plugins/signalk-app-dock/dismiss-tour', { method: 'POST' }).catch(() => {})
     })
   }
 
@@ -1194,4 +1194,4 @@ function isFiniteNumber(v: unknown): v is number {
   } else {
     setIdleHint()
   }
-})()
+})().catch((e: unknown) => console.error('[Dock] failed to start', e))

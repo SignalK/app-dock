@@ -147,16 +147,17 @@ Everything is strict TypeScript. Vite only transpiles, so both Vite builds run t
 
 ### Scripts
 
-| Command                | Description                                                       |
-| ---------------------- | ----------------------------------------------------------------- |
-| `npm run build`        | Build the plugin, the dock pages and the config panel             |
-| `npm run build:server` | Compile the plugin and its tests to `dist/`                       |
-| `npm run build:dock`   | Build the dock pages into `public/` (empties it first)            |
-| `npm run build:config` | Build the admin UI config panel into `public/`                    |
-| `npm test`             | Run the plugin tests (`node --test`) against `dist/`; build first |
-| `npm run format`       | Prettier + ESLint fix                                             |
-| `npm run format:check` | Prettier check + ESLint, as CI runs them                          |
-| `npm run lint`         | ESLint check                                                      |
+| Command                    | Description                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| `npm run build`            | Build the plugin, the dock pages and the config panel             |
+| `npm run typecheck:config` | Type-check the Vite and ESLint configs                            |
+| `npm run build:server`     | Compile the plugin and its tests to `dist/`                       |
+| `npm run build:dock`       | Build the dock pages into `public/` (empties it first)            |
+| `npm run build:config`     | Build the admin UI config panel into `public/`                    |
+| `npm test`                 | Run the plugin tests (`node --test`) against `dist/`; build first |
+| `npm run format`           | Prettier + ESLint fix                                             |
+| `npm run format:check`     | Prettier check + ESLint, as CI runs them                          |
+| `npm run lint`             | ESLint check                                                      |
 
 ### Icon assets
 

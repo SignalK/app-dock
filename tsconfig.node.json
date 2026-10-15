@@ -1,0 +1,20 @@
+{
+  // The build and lint configs at the package root, which Node and Vite load
+  // directly. Type-checked by `npm run typecheck:config`; nothing is emitted.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["vite.*.config.ts", "eslint.config.ts"]
+}
