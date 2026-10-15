@@ -1,5 +1,5 @@
-import type { ActionResult, Path, Plugin, ServerAPI } from '@signalk/server-api'
-import type { IRouter } from 'express'
+import type { ActionResult, Path, Plugin, PluginRouter, RouteAccessLevel, ServerAPI } from '@signalk/server-api'
+import type { RequestHandler } from 'express'
 import { ConfigSchema, type AppEntry, type Config, type DiscoveredWebapp, type ResolvedApp } from './schema.js'
 
 const DEFAULT_APPS: AppEntry[] = [
@@ -38,11 +38,12 @@ interface InstalledWebapp {
 
 type DockServerAPI = ServerAPI & { webapps?: InstalledWebapp[] }
 
-type AccessLevel = 'readonly' | 'readwrite'
-
-// signalk-server 2.31 and later add router.access(), which @signalk/server-api
-// does not declare.
-type AccessRouter = IRouter & { access?: (level: AccessLevel) => IRouter }
+// What a route is registered on: the plugin's router, or what its access()
+// returns.
+interface RouteRegistrar {
+  get(path: string, handler: RequestHandler): unknown
+  post(path: string, handler: RequestHandler): unknown
+}
 
 export default function appDock(app: DockServerAPI): Plugin {
   let pluginSettings: Config = {}
@@ -131,12 +132,15 @@ export default function appDock(app: DockServerAPI): Plugin {
       running = false
     },
 
-    registerWithRouter(router: AccessRouter) {
+    registerWithRouter(router: PluginRouter) {
       // Routes registered on the router itself are admin-only. signalk-server
       // 2.31 and later add router.access(), which opens a route to readonly or
       // readwrite users; on older servers every route stays admin-only.
-      const openTo = (level: AccessLevel): IRouter =>
-        typeof router.access === 'function' ? router.access(level) : router
+      // PluginRouter declares access() unconditionally, so older servers are
+      // told apart at runtime.
+      const access: PluginRouter['access'] | undefined = router.access
+      const openTo = (level: RouteAccessLevel): RouteRegistrar =>
+        typeof access === 'function' ? access.call(router, level) : router
 
       openTo('readonly').get('/settings', (_req, res) => {
         const settings = running ? pluginSettings : savedSettings()
