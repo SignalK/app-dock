@@ -70,6 +70,9 @@ configs (`npm run typecheck:config`, the first step of `npm run build`).
   `dock.ts`, the config panel in `src/configpanel/`, and the **Settings** table in `README.md`. The panel's types come
   from the schema, so the type checker flags a panel that misses a new field's type; `dock.ts` declares its own
   `DockConfig` with every field filled in.
+- **The dock's own icons are SVG, never emoji.** A kiosk often has no colour emoji font, and an emoji then renders as an
+  empty square (#52). Buttons draw from `ICONS` in `src/dock/icons.ts`, which the config panel's preview shares; add an
+  icon there. App icons a user configures may still be emoji: that is their choice.
 - **Promises are handled.** ESLint runs `no-floating-promises`, `no-misused-promises` and `await-thenable` with type
   information from each directory's tsconfig. A promise that reports its own errors is passed on as `() => void f()`
   or marked `void f()`; anything else gets a `.catch()`.

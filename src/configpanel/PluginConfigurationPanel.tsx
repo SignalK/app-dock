@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, type CSSProperties, type DragEvent } from 'react'
 import type { AppEntry, Config, DockPosition, IframeMode } from '../plugin/schema'
+import { ICONS, type IconName } from '../dock/icons'
 
 // An installed webapp as the server's /skServer/webapps lists it.
 interface WebappListing {
@@ -176,6 +177,17 @@ interface FieldProps<T> {
 
 interface SelectFieldProps<T extends string> extends FieldProps<T> {
   options: { value: T; label: string }[]
+}
+
+// One of the dock's own button icons, as the dock draws it: SVG, so the preview
+// needs no emoji font either.
+function UtilityIcon({ name, color }: { name: IconName; color?: string }) {
+  return (
+    <span
+      style={{ display: 'flex', width: '55%', height: '55%', color: color || '#fff' }}
+      dangerouslySetInnerHTML={{ __html: ICONS[name] }}
+    />
+  )
 }
 
 function SelectField<T extends string>({ label, value, options, onChange, hint }: SelectFieldProps<T>) {
@@ -538,7 +550,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
                   borderRadius: 10
                 }}
               >
-                {'\u2600\uFE0F'}
+                <UtilityIcon name="sun" color="#fbbf24" />
               </div>
             )}
             {showFullscreenButton && (
@@ -554,7 +566,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
                   color: '#fff'
                 }}
               >
-                {'\u26F6'}
+                <UtilityIcon name="fullscreen" />
               </div>
             )}
             {(showNightModeButton || showFullscreenButton) && (
@@ -578,7 +590,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
                     color: '#fff'
                   }}
                 >
-                  {'\u2715'}
+                  <UtilityIcon name="close" />
                 </div>
               </>
             )}
