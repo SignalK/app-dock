@@ -1,6 +1,6 @@
 {
   "name": "@signalk/app-dock",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "macOS-style configurable app dock for switching between SignalK webapps on touch screens",
   "repository": {
     "url": "https://github.com/SignalK/app-dock"
@@ -30,8 +30,7 @@
     "docs/screenshots/"
   ],
   "scripts": {
-    "build": "npm run typecheck:config && npm run build:server && npm run build:dock && npm run build:config",
-    "typecheck:config": "tsc -p tsconfig.node.json",
+    "build": "npm run build:server && npm run build:dock && npm run build:config",
     "build:server": "tsc",
     "build:dock": "vite build --config vite.dock.config.ts",
     "build:config": "vite build --config vite.configpanel.config.ts",
