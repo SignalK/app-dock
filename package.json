@@ -24,6 +24,7 @@
   "type": "module",
   "main": "dist/plugin/index.js",
   "files": [
+    "app-icon.svg",
     "dist/plugin/",
     "public/",
     "docs/screenshots/"
