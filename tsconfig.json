@@ -1,0 +1,22 @@
+{
+  // The server plugin and its tests, compiled to dist/ by `npm run build:server`.
+  // The browser code (src/configpanel, src/dock) is bundled by Vite and has its
+  // own tsconfig.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/plugin", "src/test"]
+}

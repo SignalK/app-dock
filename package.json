@@ -21,33 +21,47 @@
       "./docs/screenshots/3_app-dock_config.png"
     ]
   },
-  "main": "plugin/index.js",
+  "type": "module",
+  "main": "dist/plugin/index.js",
   "files": [
-    "plugin/",
+    "dist/plugin/",
     "public/",
     "docs/screenshots/"
   ],
   "scripts": {
-    "build:config": "webpack",
-    "prepublishOnly": "webpack",
-    "format": "prettier --write '**/*.{js,json,md,css,html}' && eslint --fix .",
+    "build": "npm run build:server && npm run build:config",
+    "build:server": "tsc",
+    "build:config": "webpack --config webpack.config.cjs",
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write . && eslint --fix .",
     "lint": "eslint .",
     "format:check": "prettier --check . && eslint .",
-    "test": "node --test test/plugin.test.js"
+    "test": "node --test \"dist/test/**/*.test.js\""
   },
   "author": "Dirk Wahrheit <dirkwahrheit@gmail.com>",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
+  },
+  "dependencies": {
+    "typebox": "^1.3.37"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
+    "@eslint/js": "^10.0.1",
+    "@signalk/server-api": "^2.33.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.0",
     "babel-loader": "^10.1.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "jiti": "^2.7.0",
     "prettier": "^3.8.1",
     "react": "^19.2.4",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
     "webpack": "^5.105.4",
     "webpack-cli": "^7.0.2"
   }
