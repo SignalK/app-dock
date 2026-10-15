@@ -999,7 +999,7 @@ function isFiniteNumber(v: unknown): v is number {
   function offsetInDock(frame: HTMLIFrameElement): Point {
     let x = 0
     let y = 0
-    for (let f: HTMLIFrameElement | null = frame; f; ) {
+    for (let f: HTMLIFrameElement | null = frame; f;) {
       const r = f.getBoundingClientRect()
       x += r.left
       y += r.top
