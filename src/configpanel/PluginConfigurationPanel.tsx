@@ -1,4 +1,28 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type CSSProperties, type DragEvent } from 'react'
+import type { AppEntry, Config, DockPosition, IframeMode } from '../plugin/schema'
+
+// An installed webapp as the server's /skServer/webapps lists it.
+interface WebappListing {
+  name: string
+  signalk?: { displayName?: string; appIcon?: string }
+}
+
+interface DiscoveredApp {
+  name: string
+  label: string
+  url: string
+  icon: string | null
+  isAdmin?: boolean
+}
+
+interface PanelProps {
+  configuration?: Config
+  save: (configuration: Config) => void | Promise<void>
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
 
 const S = {
   root: {
@@ -105,11 +129,18 @@ const S = {
   },
   checkboxField: { width: 16, height: 16, accentColor: '#3b82f6' },
   hint: { fontSize: 11, color: '#aaa', marginLeft: 8 }
+} satisfies Record<string, CSSProperties>
+
+interface IconPreviewProps {
+  icon?: string
+  label?: string
+  color?: string
+  size?: number
 }
 
-function IconPreview({ icon, label, color, size }) {
+function IconPreview({ icon, label, color, size }: IconPreviewProps) {
   const sz = size || 36
-  const style = {
+  const style: CSSProperties = {
     ...S.iconBox,
     width: sz,
     height: sz,
@@ -125,8 +156,9 @@ function IconPreview({ icon, label, color, size }) {
           alt={label}
           style={{ ...S.iconImg, padding: sz * 0.12 }}
           onError={(e) => {
-            e.target.style.display = 'none'
-            e.target.parentNode.textContent = (label || '??').slice(0, 2).toUpperCase()
+            const img = e.currentTarget
+            img.style.display = 'none'
+            if (img.parentElement) img.parentElement.textContent = (label || '??').slice(0, 2).toUpperCase()
           }}
         />
       </div>
@@ -135,11 +167,22 @@ function IconPreview({ icon, label, color, size }) {
   return <div style={style}>{iconVal || (label || '??').slice(0, 2).toUpperCase()}</div>
 }
 
-function SelectField({ label, value, options, onChange, hint }) {
+interface FieldProps<T> {
+  label: string
+  value: T
+  onChange: (value: T) => void
+  hint?: string
+}
+
+interface SelectFieldProps<T extends string> extends FieldProps<T> {
+  options: { value: T; label: string }[]
+}
+
+function SelectField<T extends string>({ label, value, options, onChange, hint }: SelectFieldProps<T>) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
-      <select style={S.select} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select style={S.select} value={value} onChange={(e) => onChange(e.target.value as T)}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -151,7 +194,7 @@ function SelectField({ label, value, options, onChange, hint }) {
   )
 }
 
-function NumberField({ label, value, onChange, hint }) {
+function NumberField({ label, value, onChange, hint }: FieldProps<number>) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
@@ -161,7 +204,14 @@ function NumberField({ label, value, onChange, hint }) {
   )
 }
 
-function CheckboxField({ label, checked, onChange, hint }) {
+interface CheckboxFieldProps {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+  hint?: string
+}
+
+function CheckboxField({ label, checked, onChange, hint }: CheckboxFieldProps) {
   return (
     <div style={S.fieldRow}>
       <span style={S.label}>{label}</span>
@@ -171,30 +221,35 @@ function CheckboxField({ label, checked, onChange, hint }) {
   )
 }
 
-export default function PluginConfigurationPanel({ configuration, save }) {
-  const cfg = configuration || {}
-  const [apps, setApps] = useState(() => cfg.apps || [])
-  const [position, setPosition] = useState(cfg.position || 'bottom')
-  const [iframeMode, setIframeMode] = useState(cfg.iframeMode || 'keep-alive')
+export default function PluginConfigurationPanel({ configuration, save }: PanelProps) {
+  const cfg: Config = configuration || {}
+  const [apps, setApps] = useState<AppEntry[]>(() => cfg.apps || [])
+  const [position, setPosition] = useState<DockPosition>(cfg.position || 'bottom')
+  const [iframeMode, setIframeMode] = useState<IframeMode>(cfg.iframeMode || 'keep-alive')
   const [iconSize, setIconSize] = useState(cfg.iconSize || 56)
   const [magnification, setMagnification] = useState(cfg.magnification !== false)
   const [magnificationScale, setMagnificationScale] = useState(cfg.magnificationScale || 1.7)
   const [showNightModeButton, setShowNightModeButton] = useState(cfg.showNightModeButton || false)
   const [showFullscreenButton, setShowFullscreenButton] = useState(cfg.showFullscreenButton || false)
   const [showExitButton, setShowExitButton] = useState(cfg.showExitButton || false)
-  const [tourDismissed, setTourDismissed] = useState(cfg.tourDismissed || false)
+  // Set from the welcome tour, not this panel; a save passes it through.
+  const tourDismissed = cfg.tourDismissed || false
 
   const [status, setStatus] = useState('')
   const [statusError, setStatusError] = useState(false)
   const [discovering, setDiscovering] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [dragIdx, setDragIdx] = useState(null)
-  const [overIdx, setOverIdx] = useState(null)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [overIdx, setOverIdx] = useState<number | null>(null)
 
+  // discover() merges into the list as it is when its fetch returns, not as
+  // it was when the button was pressed.
   const appsRef = useRef(apps)
-  appsRef.current = apps
+  useEffect(() => {
+    appsRef.current = apps
+  }, [apps])
 
-  const statusTimeoutRef = useRef(null)
+  const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     return () => {
       if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current)
@@ -202,7 +257,7 @@ export default function PluginConfigurationPanel({ configuration, save }) {
   }, [])
 
   const buildConfig = useCallback(
-    (appsList) => ({
+    (appsList: AppEntry[]): Config => ({
       position,
       iframeMode,
       iconSize,
@@ -233,15 +288,12 @@ export default function PluginConfigurationPanel({ configuration, save }) {
     setStatus('Saving\u2026')
     setStatusError(false)
     try {
-      const result = save(buildConfig(apps))
-      if (result && typeof result.then === 'function') {
-        await result
-      }
+      await save(buildConfig(apps))
       setStatus('Configuration saved \u2014 plugin will restart')
       setStatusError(false)
       statusTimeoutRef.current = setTimeout(() => setStatus(''), 5000)
     } catch (e) {
-      setStatus('Save failed: ' + (e.message || e))
+      setStatus('Save failed: ' + errorMessage(e))
       setStatusError(true)
     } finally {
       setSaving(false)
@@ -254,10 +306,10 @@ export default function PluginConfigurationPanel({ configuration, save }) {
     setStatusError(false)
     try {
       const res = await fetch('/skServer/webapps')
-      const allWebapps = await res.json()
+      const allWebapps: WebappListing[] = await res.json()
       const webapps = allWebapps
         .filter((w) => w.name !== '@signalk/app-dock')
-        .map((w) => {
+        .map((w): DiscoveredApp => {
           if (w.name === '@signalk/server-admin-ui') {
             return {
               name: w.name,
@@ -308,24 +360,24 @@ export default function PluginConfigurationPanel({ configuration, save }) {
       )
       setStatusError(false)
     } catch (e) {
-      setStatus('Discovery failed: ' + e.message)
+      setStatus('Discovery failed: ' + errorMessage(e))
       setStatusError(true)
     }
     setDiscovering(false)
   }
 
-  const toggleApp = (i) => setApps(apps.map((a, j) => (j === i ? { ...a, enabled: !a.enabled } : a)))
-  const toggleAutostart = (i) =>
+  const toggleApp = (i: number) => setApps(apps.map((a, j) => (j === i ? { ...a, enabled: !a.enabled } : a)))
+  const toggleAutostart = (i: number) =>
     setApps(apps.map((a, j) => (j === i ? { ...a, autostart: !a.autostart } : { ...a, autostart: false })))
-  const removeApp = (i) => setApps(apps.filter((_, j) => j !== i))
+  const removeApp = (i: number) => setApps(apps.filter((_, j) => j !== i))
 
-  const onDragStart = (i) => setDragIdx(i)
-  const onDragOver = (e, i) => {
+  const onDragStart = (i: number) => setDragIdx(i)
+  const onDragOver = (e: DragEvent, i: number) => {
     e.preventDefault()
     setOverIdx(i)
   }
   const onDragLeave = () => setOverIdx(null)
-  const onDrop = (e, dropIdx) => {
+  const onDrop = (e: DragEvent, dropIdx: number) => {
     e.preventDefault()
     setOverIdx(null)
     if (dragIdx !== null && dragIdx !== dropIdx) {

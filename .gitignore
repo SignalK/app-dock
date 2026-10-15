@@ -1,3 +1,6 @@
-node_modules/
+node_modules
 dist/
 *.tsbuildinfo
+# Built by `npm run build:config`.
+public/remoteEntry.js
+public/configpanel/
