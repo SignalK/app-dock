@@ -32,6 +32,7 @@
     "prepublishOnly": "webpack",
     "format": "prettier --write '**/*.{js,json,md,css,html}' && eslint --fix .",
     "lint": "eslint .",
+    "format:check": "prettier --check . && eslint .",
     "test": "node --test test/plugin.test.js"
   },
   "author": "Dirk Wahrheit <dirkwahrheit@gmail.com>",

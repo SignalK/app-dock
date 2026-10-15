@@ -115,14 +115,17 @@ This repo is maintained by Dirk Wahrheit.
 
 ```bash
 npm run format          # prettier --write + eslint --fix
-npm run lint
+npm run format:check    # what CI runs: prettier --check + eslint
 npm test
 npm run build:config    # only when src/configpanel/ changed; commit the output
 ```
 
 CI (`.github/workflows/ci.yml`) calls signalk-server's shared `plugin-ci.yml`: install, `npm test`, plugin lifecycle
-and schema checks, npm-pack contents, and an App Store style `--ignore-scripts` install. It does **not** run Prettier or
-ESLint, so run them locally.
+and schema checks, npm-pack contents, an App Store style `--ignore-scripts` install, and `npm run format:check`, which
+fails the build on any Prettier or ESLint finding.
+
+Dependabot (`.github/dependabot.yml`) opens weekly grouped PRs for npm and GitHub Actions. A runtime dependency bump is
+titled `fix(deps)` and releases; dev dependencies (`build(deps-dev)`) and actions (`ci`) do not.
 
 ### Releases
 
