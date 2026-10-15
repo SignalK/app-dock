@@ -522,6 +522,16 @@ describe('public files', () => {
     assert.ok(fs.existsSync(path.join(publicDir, 'app-icon.svg')))
   })
 
+  // The admin UI loads signalk.appIcon from the webapp's mount, public/; the
+  // App Store loads it from the package root on unpkg. It has to be at both.
+  it('signalk.appIcon resolves from the package root and from public/', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'))
+    const icon = pkg.signalk.appIcon.replace(/^\.\//, '')
+    assert.ok(fs.existsSync(path.join(root, icon)), 'at the package root')
+    assert.ok(fs.existsSync(path.join(publicDir, icon)), 'in public/')
+    assert.ok(pkg.files.includes(icon), 'published')
+  })
+
   it('icon-settings.svg exists', () => {
     assert.ok(fs.existsSync(path.join(publicDir, 'icon-settings.svg')))
   })

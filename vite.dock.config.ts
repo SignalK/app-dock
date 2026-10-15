@@ -15,6 +15,9 @@ export default defineConfig({
   base: './',
   // With `root` set, Vite looks for public files under it; name the directory
   // explicitly. Its files (icons, manifest) are copied to public/ as they are.
+  // app-icon.svg is not among them: it lives at the package root, where the
+  // App Store fetches signalk.appIcon, and index.html's references to it
+  // bring it into public/, where the admin UI fetches it.
   publicDir: dock('static'),
   plugins: [checker({ typescript: { tsconfigPath: dock('tsconfig.json') } })],
   build: {
@@ -22,6 +25,9 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'es2022',
     modulePreload: false,
+    // Every asset keeps its own file: the admin UI and the manifest load
+    // app-icon.svg by name.
+    assetsInlineLimit: 0,
     rollupOptions: {
       // The input names become the script names: dock.js and config.js.
       input: { dock: dock('index.html'), config: dock('config.html') },

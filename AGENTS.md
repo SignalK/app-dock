@@ -90,7 +90,7 @@ plugin registry read them from the package. Check with `npm pack --dry-run`.
 
 ## Icons
 
-`src/dock/static/app-icon.svg` is the source icon: the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,
+`app-icon.svg`, at the package root, is the source icon. It stays there because the App Store fetches `signalk.appIcon` from the package root (on unpkg) while the admin UI fetches it from the webapp's mount, `public/`; `index.html` references it, so the dock build writes it to `public/app-icon.svg` too. It is the `signalk.appIcon` shown by the admin UI and the App Store, the favicon,
 and the dock's own logo. Like every plugin logo here it has a transparent background: no tile behind the artwork, and
 colours that read on light and dark pages. `app-icon-180.png` (apple-touch-icon) is generated from it onto an
 opaque dark background, and `app-icon-maskable.svg` carries the same background and is maintained by hand; iOS
@@ -171,18 +171,19 @@ publishes to npm with provenance (OIDC trusted publishing, no token).
 
 ## File layout
 
-| Path                          | Purpose                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------ |
-| `src/plugin/index.ts`         | Plugin entry: default-app seeding, routes, night-mode PUT handler.                   |
-| `src/plugin/schema.ts`        | TypeBox configuration schema and the types shared with the dock and the panel.       |
-| `src/dock/index.html`         | Dock page: idle screen, handle, dock, backdrop, loading overlay, welcome tour.       |
-| `src/dock/dock.ts`            | Dock logic: access detection, config loading and polling, iframes, double-tap, dock. |
-| `src/dock/dock.css`           | Dock styling, magnification, positions.                                              |
-| `src/dock/config.html`, `.ts` | Older standalone configurator.                                                       |
-| `src/dock/static/`            | Icons and the PWA manifest, copied into `public/` unchanged.                         |
-| `src/configpanel/`            | React config panel for the admin UI (Module Federation remote) and its host shims.   |
-| `src/test/plugin.test.ts`     | Plugin tests (`node:test`), run from `dist/test/`.                                   |
-| `vite.dock.config.ts`         | Builds `src/dock/` into `public/`.                                                   |
-| `vite.configpanel.config.ts`  | Builds `src/configpanel/` into `public/`, against the admin UI's React.              |
-| `eslint.config.ts`            | ESLint flat config: typescript-eslint, React hooks rules for the panel.              |
-| `docs/screenshots/`           | App Store screenshots, listed in `package.json` under `signalk.screenshots`.         |
+| Path                          | Purpose                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/plugin/index.ts`         | Plugin entry: default-app seeding, routes, night-mode PUT handler.                           |
+| `src/plugin/schema.ts`        | TypeBox configuration schema and the types shared with the dock and the panel.               |
+| `src/dock/index.html`         | Dock page: idle screen, handle, dock, backdrop, loading overlay, welcome tour.               |
+| `src/dock/dock.ts`            | Dock logic: access detection, config loading and polling, iframes, double-tap, dock.         |
+| `src/dock/dock.css`           | Dock styling, magnification, positions.                                                      |
+| `src/dock/config.html`, `.ts` | Older standalone configurator.                                                               |
+| `src/dock/static/`            | Icons and the PWA manifest, copied into `public/` unchanged.                                 |
+| `app-icon.svg`                | Source app icon (`signalk.appIcon`), published at the package root and built into `public/`. |
+| `src/configpanel/`            | React config panel for the admin UI (Module Federation remote) and its host shims.           |
+| `src/test/plugin.test.ts`     | Plugin tests (`node:test`), run from `dist/test/`.                                           |
+| `vite.dock.config.ts`         | Builds `src/dock/` into `public/`.                                                           |
+| `vite.configpanel.config.ts`  | Builds `src/configpanel/` into `public/`, against the admin UI's React.                      |
+| `eslint.config.ts`            | ESLint flat config: typescript-eslint, React hooks rules for the panel.                      |
+| `docs/screenshots/`           | App Store screenshots, listed in `package.json` under `signalk.screenshots`.                 |
