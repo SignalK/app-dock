@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    # The release-please gate releases fix commits only: a bump of a runtime
+    # dependency is `fix(deps)` and ships, a dev dependency is `build(deps-dev)`
+    # and does not.
+    commit-message:
+      prefix: fix
+      prefix-development: build
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # @types/node majors track the Node.js major. Stay on the lowest one the
+      # plugin CI tests (Node 22) so the types match every supported runtime.
+      - dependency-name: '@types/node'
+        versions: ['>=23']
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    # An action bump changes nothing users get, so it is not a releasable one.
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        update-types:
+          - minor
+          - patch
