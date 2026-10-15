@@ -1,6 +1,6 @@
 node_modules
 dist/
 *.tsbuildinfo
-# Built by `npm run build:config`.
-public/remoteEntry.js
-public/configpanel/
+# Built by `npm run build`: the dock pages from src/dock/, the config panel
+# from src/configpanel/.
+public/

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App Dock - Configuration</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        padding: 24px;
+        min-height: 100vh;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #888;
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+      .section {
+        margin-bottom: 32px;
+      }
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+      }
+
+      /* Discover button */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .btn-primary:disabled {
+        background: #555;
+        cursor: not-allowed;
+      }
+      .btn-save {
+        background: #10b981;
+        color: #fff;
+      }
+      .btn-save:hover {
+        background: #059669;
+      }
+      .btn-danger {
+        background: #ef4444;
+        color: #fff;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      /* App list */
+      .app-list {
+        list-style: none;
+      }
+      .app-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        cursor: grab;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .app-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+      .app-item.dragging {
+        opacity: 0.5;
+        background: rgba(59, 130, 246, 0.15);
+      }
+      .app-item.drag-over {
+        border-color: #3b82f6;
+      }
+
+      .drag-handle {
+        color: #555;
+        font-size: 18px;
+        cursor: grab;
+        user-select: none;
+        flex-shrink: 0;
+        width: 20px;
+        text-align: center;
+      }
+
+      .app-icon-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(58, 58, 62, 0.9);
+        overflow: hidden;
+        flex-shrink: 0;
+        font-size: 20px;
+      }
+      .app-icon-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .app-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .app-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .app-url {
+        font-size: 11px;
+        color: #777;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .app-toggle {
+        flex-shrink: 0;
+      }
+      .app-toggle input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #3b82f6;
+      }
+
+      .app-actions {
+        flex-shrink: 0;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .status {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #10b981;
+        min-height: 20px;
+      }
+      .status.error {
+        color: #ef4444;
+      }
+
+      .actions-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 20px;
+      }
+
+      /* Dock preview */
+      .dock-preview {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 20px;
+        background: rgba(30, 30, 32, 0.55);
+        backdrop-filter: blur(60px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 22px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        margin: 20px auto;
+        width: fit-content;
+      }
+      .dock-preview-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(58, 58, 62, 0.9);
+        overflow: hidden;
+        font-size: 22px;
+        transition: transform 0.15s ease;
+      }
+      .dock-preview-icon:hover {
+        transform: scale(1.3);
+      }
+      .dock-preview-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>App Dock Configuration</h1>
+    <p class="subtitle">Discover installed webapps, arrange their order, and customize the dock.</p>
+
+    <div class="section">
+      <div class="section-title">Webapps</div>
+      <button class="btn btn-primary" id="discover-btn">Discover Installed Webapps</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Dock Apps (drag to reorder)</div>
+      <ul class="app-list" id="app-list"></ul>
+      <div class="empty-state" id="empty-state" style="display: none">No apps yet. Click Discover above.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Preview</div>
+      <div class="dock-preview" id="dock-preview"></div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-save" id="save-btn">Save Configuration</button>
+    </div>
+
+    <script type="module" src="./config.ts"></script>
+  </body>
+</html>
