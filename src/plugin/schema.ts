@@ -31,9 +31,9 @@ export const ConfigSchema = Type.Object(
         type: 'string',
         title: 'iFrame lifecycle',
         description:
-          'keep-alive: load once and hide/show (faster switching, more RAM). ' +
-          'destroy: reload on every switch (slower, minimal RAM).',
-        default: 'keep-alive'
+          'destroy: reload on every switch, so only the app on screen runs (slower switching, minimal RAM and CPU). ' +
+          'keep-alive: load once and hide/show; hidden apps keep running (faster switching, more RAM and CPU).',
+        default: 'destroy'
       })
     ),
 

@@ -90,7 +90,7 @@ function isFiniteNumber(v: unknown): v is number {
 
   const DEFAULTS: DockConfig = {
     position: 'bottom',
-    iframeMode: 'keep-alive',
+    iframeMode: 'destroy',
     iconSize: 56,
     magnification: true,
     magnificationScale: 1.7,
