@@ -163,6 +163,14 @@ describe('schema', () => {
     assert.deepEqual(items.required, ['url'])
   })
 
+  it('defines iframeMode with default destroy', () => {
+    // keep-alive leaves every app opened once running in a hidden frame, which
+    // a Raspberry Pi kiosk pays for in RAM and CPU while it renders the chart.
+    const plugin = pluginFactory(createMockApp())
+    const prop = plugin.schema.properties.iframeMode
+    assert.equal(prop.default, 'destroy')
+  })
+
   it('defines showNightModeButton with default true', () => {
     const plugin = pluginFactory(createMockApp())
     const prop = plugin.schema.properties.showNightModeButton

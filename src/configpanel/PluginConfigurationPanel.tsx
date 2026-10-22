@@ -237,7 +237,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
   const cfg: Config = configuration || {}
   const [apps, setApps] = useState<AppEntry[]>(() => cfg.apps || [])
   const [position, setPosition] = useState<DockPosition>(cfg.position || 'bottom')
-  const [iframeMode, setIframeMode] = useState<IframeMode>(cfg.iframeMode || 'keep-alive')
+  const [iframeMode, setIframeMode] = useState<IframeMode>(cfg.iframeMode || 'destroy')
   const [iconSize, setIconSize] = useState(cfg.iconSize || 56)
   const [magnification, setMagnification] = useState(cfg.magnification !== false)
   const [magnificationScale, setMagnificationScale] = useState(cfg.magnificationScale || 1.7)
@@ -428,8 +428,8 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
         value={iframeMode}
         onChange={setIframeMode}
         options={[
-          { value: 'keep-alive', label: 'Keep-alive (faster switching, more RAM)' },
-          { value: 'destroy', label: 'Destroy (reload each time, less RAM)' }
+          { value: 'destroy', label: 'Destroy (reload each time, less RAM and CPU)' },
+          { value: 'keep-alive', label: 'Keep-alive (faster switching, hidden apps keep running)' }
         ]}
       />
 
