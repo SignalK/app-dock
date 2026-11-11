@@ -771,10 +771,8 @@ function isFiniteNumber(v: unknown): v is number {
   // tap/click normally. A double-tap anywhere opens the dock. Side effect:
   // double-tapping a button fires that button once before the dock opens —
   // users are expected to aim double-taps at non-interactive regions.
-  // Wide enough for touch controllers that report taps late or unevenly, or
-  // imprecisely on a large monitor, as some kiosk touchscreens do.
-  const DOUBLE_TAP_MS = 600
-  const DOUBLE_TAP_SLOP = 60
+  const DOUBLE_TAP_MS = 450
+  const DOUBLE_TAP_SLOP = 40
 
   let lastTapTime = 0
   let lastTapX = 0
