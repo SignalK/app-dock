@@ -83,7 +83,7 @@ If the installed dock ever displays a blank screen after a long idle period (rar
 
 Open **Plugin Config > App Dock** in the admin UI. The embedded configurator provides:
 
-- **Discover** button to find all installed webapps (including Admin UI with a Settings gear icon)
+- **Discover** button to find all installed webapps (including Admin UI as a Settings tile with a gear icon, which opens the Webapps page)
 - **Drag-to-reorder** the app list
 - **Enable/disable** individual apps
 - **Autostart** flag (play button) -- set one app to load automatically on open
