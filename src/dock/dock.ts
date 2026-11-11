@@ -128,7 +128,7 @@ function isFiniteNumber(v: unknown): v is number {
       {
         enabled: true,
         autostart: false,
-        url: '/admin/',
+        url: '/admin/#/webapps',
         label: 'Settings',
         icon: '/@signalk/app-dock/icon-settings.svg',
         color: '#78788c'

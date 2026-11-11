@@ -326,7 +326,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
             return {
               name: w.name,
               label: 'Settings',
-              url: '/admin/',
+              url: '/admin/#/webapps',
               icon: '/@signalk/app-dock/icon-settings.svg',
               isAdmin: true
             }
