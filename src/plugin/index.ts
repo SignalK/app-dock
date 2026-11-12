@@ -23,8 +23,8 @@ const DEFAULT_APPS: AppEntry[] = [
     enabled: true,
     autostart: false,
     url: '/admin/#/webapps',
-    label: 'Settings',
-    icon: '/@signalk/app-dock/icon-settings.svg',
+    label: 'More',
+    icon: '/@signalk/app-dock/icon-more.svg',
     color: '#78788c'
   }
 ]

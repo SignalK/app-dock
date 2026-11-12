@@ -325,9 +325,9 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
           if (w.name === '@signalk/server-admin-ui') {
             return {
               name: w.name,
-              label: 'Settings',
+              label: 'More',
               url: '/admin/#/webapps',
-              icon: '/@signalk/app-dock/icon-settings.svg',
+              icon: '/@signalk/app-dock/icon-more.svg',
               isAdmin: true
             }
           }

@@ -61,7 +61,7 @@ function isFiniteNumber(v: unknown): v is number {
 
 ;(async function DockApp() {
   // Bail out if we're running inside another iframe. This prevents the
-  // dock-in-dock loop when the dock is opened via its own Settings tile /
+  // dock-in-dock loop when the dock is opened via its own More tile /
   // the admin UI's Webapps tab / any other embed path. Same-origin redirect
   // the top window to the dock URL so the user ends up on a clean
   // standalone dock instead of a nested instance. The outer dock grants
@@ -129,8 +129,8 @@ function isFiniteNumber(v: unknown): v is number {
         enabled: true,
         autostart: false,
         url: '/admin/#/webapps',
-        label: 'Settings',
-        icon: '/@signalk/app-dock/icon-settings.svg',
+        label: 'More',
+        icon: '/@signalk/app-dock/icon-more.svg',
         color: '#78788c'
       }
     ]

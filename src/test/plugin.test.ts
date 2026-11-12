@@ -297,7 +297,8 @@ describe('default apps seeding', () => {
     assert.equal(savedOptions.apps[1].url, '/@halos-org/skip/')
     assert.equal(savedOptions.apps[1].autostart, false)
     assert.equal(savedOptions.apps[2].url, '/admin/#/webapps')
-    assert.equal(savedOptions.apps[2].label, 'Settings')
+    assert.equal(savedOptions.apps[2].label, 'More')
+    assert.equal(savedOptions.apps[2].icon, '/@signalk/app-dock/icon-more.svg')
   })
 
   it('does not seed when apps array already exists (even if empty)', () => {
@@ -540,7 +541,11 @@ describe('public files', () => {
     assert.ok(pkg.files.includes(icon), 'published')
   })
 
-  it('icon-settings.svg exists', () => {
+  it('icon-more.svg exists', () => {
+    assert.ok(fs.existsSync(path.join(publicDir, 'icon-more.svg')))
+  })
+
+  it('icon-settings.svg still exists for app lists saved with it', () => {
     assert.ok(fs.existsSync(path.join(publicDir, 'icon-settings.svg')))
   })
 

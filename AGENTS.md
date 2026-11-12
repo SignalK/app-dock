@@ -60,7 +60,7 @@ configs (`npm run typecheck:config`, the first step of `npm run build`).
   top window (the guard at the top of `dock.ts`).
 - **The admin UI opens fresh.** `opensFresh()` in `dock.ts` matches an app on the dock's origin whose path is under
   `/admin`. `switchToApp()` drops its frame and loads a new one each time its tile is tapped, in both iframe modes, so
-  Settings never resumes a webapp or page opened inside it. Every other app follows `iframeMode`.
+  the More tile never resumes a webapp or page opened inside it. Every other app follows `iframeMode`.
 - **The active app's tile reloads it.** In keep-alive mode a frame lives as long as the dock page, so a webapp updated
   on the server would stay on its old version until the browser restarts. `switchToApp()` reloads the active app's frame
   at the page it is on (`reloadFrame()`); a frame on another origin starts over at the app's URL.
