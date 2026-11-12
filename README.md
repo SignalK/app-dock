@@ -83,7 +83,7 @@ If the installed dock ever displays a blank screen after a long idle period (rar
 
 Open **Plugin Config > App Dock** in the admin UI. The embedded configurator provides:
 
-- **Discover** button to find all installed webapps (including Admin UI as a Settings tile with a gear icon, which opens the Webapps page)
+- **Discover** button to find all installed webapps (including the admin UI as a **More** tile, which opens the list of your other webapps and the server's settings)
 - **Drag-to-reorder** the app list
 - **Enable/disable** individual apps
 - **Autostart** flag (play button) -- set one app to load automatically on open
@@ -102,7 +102,7 @@ Open **Plugin Config > App Dock** in the admin UI. The embedded configurator pro
 | `showFullscreenButton` | `false`   | Show fullscreen toggle in dock; hidden automatically where the Fullscreen API is unavailable   |
 | `showExitButton`       | `false`   | Show X button that returns to the Signal K admin UI                                            |
 
-In either `iframeMode`, the server's admin UI (an app whose URL is under `/admin/`, such as the Settings tile) opens fresh every time, at the URL its tile points to. A webapp or page opened from inside the admin UI does not come back the next time Settings is tapped.
+In either `iframeMode`, the server's admin UI (an app whose URL is under `/admin/`, such as the More tile) opens fresh every time, at the URL its tile points to. A webapp or page opened from inside the admin UI does not come back the next time More is tapped.
 
 ## Access
 
