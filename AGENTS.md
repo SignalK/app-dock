@@ -101,14 +101,14 @@ plugin registry read them from the package. Check with `npm pack --dry-run`.
 and the dock's own logo. Like every plugin logo here it has a transparent background: no tile behind the artwork, and
 colours that read on light and dark pages. `app-icon-180.png` (apple-touch-icon) is generated from it onto an
 opaque dark background, and `app-icon-maskable.svg` carries the same background and is maintained by hand; iOS
-and Android both need an opaque icon. See **Icon assets** in `README.md`.
+and Android both need an opaque icon. See **Icon assets** in `CONTRIBUTING.md`.
 
 ## Tests
 
 `npm test` runs the compiled `src/test/plugin.test.ts` (`dist/test/`) with `node:test` against a typed mock `app`
 (`createMockApp()`), calling routes through `registerRoutes()` and `request()`. It needs `npm run build` first; the
 `public files` tests check the build output. Cover new routes, settings and seeding behaviour there. `dock.ts` has no
-automated tests; check dock changes in a browser against a running server (see **Development** in `README.md`).
+automated tests; check dock changes in a browser against a running server (see **Development setup** in `CONTRIBUTING.md`).
 
 ## Workflow conventions
 
