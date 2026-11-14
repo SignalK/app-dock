@@ -706,11 +706,15 @@ function isFiniteNumber(v: unknown): v is number {
     }
   }
 
+  const BASE_TITLE = document.title
+
   function switchToApp(index: number) {
     const app = cfg.apps[index]
     if (!app) return
 
     hideIdleHint()
+    // Tabs, bookmarks and history then name the app on screen, not only the dock.
+    document.title = app.label ? `${app.label} – ${BASE_TITLE}` : BASE_TITLE
 
     // The night-mode and fullscreen buttons are .dock-items too; only app
     // items carry a data-index.
