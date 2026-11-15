@@ -160,6 +160,10 @@ export default function appDock(app: DockServerAPI): Plugin {
       })
 
       openTo('readwrite').post('/dismiss-tour', (_req, res) => {
+        if ((running ? pluginSettings : savedSettings()).lockTour) {
+          res.status(403).json({ error: 'The welcome tour is locked' })
+          return
+        }
         // savePluginOptions replaces the whole saved configuration, so the
         // update starts from a complete one.
         const updated: Config = { ...(running ? pluginSettings : savedSettings()), tourDismissed: true }

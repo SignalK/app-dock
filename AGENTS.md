@@ -70,6 +70,9 @@ configs (`npm run typecheck:config`, the first step of `npm run build`).
   `dock.ts`, the config panel in `src/configpanel/`, and the **Settings** table in `README.md`. The panel's types come
   from the schema, so the type checker flags a panel that misses a new field's type; `dock.ts` declares its own
   `DockConfig` with every field filled in.
+- **`lockTour` is a hidden setting.** A public demo sets it in its saved configuration: the tour shows on every visit,
+  "Don't show again" is gone and `/dismiss-tour` answers 403. It is in the schema for its type, but the config panel
+  never shows it and the README does not list it; the panel passes it through on save like `tourDismissed`.
 - **The dock's own icons are SVG, never emoji.** A kiosk often has no colour emoji font, and an emoji then renders as an
   empty square (#52). Buttons draw from `ICONS` in `src/dock/icons.ts`, which the config panel's preview shares; add an
   icon there. App icons a user configures may still be emoji: that is their choice.

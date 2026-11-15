@@ -22,6 +22,7 @@ interface DockConfig {
   showFullscreenButton: boolean
   showExitButton: boolean
   tourDismissed?: boolean
+  lockTour?: boolean
   apps: DockApp[]
 }
 
@@ -1151,8 +1152,8 @@ function isFiniteNumber(v: unknown): v is number {
   // route to readwrite users. Everyone else who is not an admin, and anyone
   // /settings did not serve the dock to, gets no button rather than one that
   // advertises a setting we can't honour. The tour reappears on their next
-  // visit.
-  if (!pluginReachable || !canWrite) {
+  // visit. lockTour (a public demo) takes the button away from everyone.
+  if (!pluginReachable || !canWrite || cfg.lockTour) {
     if ($tourDismiss) $tourDismiss.remove()
     document.getElementById('tour-buttons')?.style.setProperty('justify-content', 'center')
   } else if ($tourDismiss) {
@@ -1190,7 +1191,7 @@ function isFiniteNumber(v: unknown): v is number {
     }
   }
 
-  if (!cfg.tourDismissed) showTour()
+  if (!cfg.tourDismissed || cfg.lockTour) showTour()
 
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
   if (autostartIdx >= 0) {

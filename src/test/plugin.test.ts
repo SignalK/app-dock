@@ -441,6 +441,34 @@ describe('dismiss-tour endpoint', () => {
     assert.equal(data.tourDismissed, true)
     assert.deepEqual(saved, { position: 'right', apps, tourDismissed: true })
   })
+
+  it('refuses and saves nothing while the tour is locked', async () => {
+    const app = createMockApp()
+    let saveCalled = false
+    app.savePluginOptions = (_options, cb) => {
+      saveCalled = true
+      cb(null)
+    }
+    const plugin = pluginFactory(app)
+    plugin.start({ apps: [], lockTour: true })
+
+    let status = 0
+    const data = await new Promise<any>((resolve) => {
+      const handler = registerRoutes(plugin).post['/dismiss-tour']
+      assert.ok(handler)
+      const res: MockResponse = {
+        json: resolve,
+        status: (code: number) => {
+          status = code
+          return res
+        }
+      }
+      handler({}, res)
+    })
+    assert.equal(status, 403)
+    assert.ok(data.error)
+    assert.equal(saveCalled, false)
+  })
 })
 
 describe('mode endpoint', () => {

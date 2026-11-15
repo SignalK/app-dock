@@ -246,6 +246,8 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
   const [showExitButton, setShowExitButton] = useState(cfg.showExitButton || false)
   // Set from the welcome tour, not this panel; a save passes it through.
   const tourDismissed = cfg.tourDismissed || false
+  // Set by hand in the saved configuration, not offered here; a save keeps it.
+  const lockTour = cfg.lockTour
 
   const [status, setStatus] = useState('')
   const [statusError, setStatusError] = useState(false)
@@ -279,6 +281,7 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
       showFullscreenButton,
       showExitButton,
       tourDismissed,
+      lockTour,
       apps: appsList
     }),
     [
@@ -290,7 +293,8 @@ export default function PluginConfigurationPanel({ configuration, save }: PanelP
       showNightModeButton,
       showFullscreenButton,
       showExitButton,
-      tourDismissed
+      tourDismissed,
+      lockTour
     ]
   )
 
