@@ -80,6 +80,16 @@ export const ConfigSchema = Type.Object(
       })
     ),
 
+    // Not shown in the config panel: a public demo sets it in its saved
+    // configuration so visitors cannot switch the tour off for everyone.
+    lockTour: Type.Optional(
+      Type.Boolean({
+        title: 'Keep the welcome tour',
+        description: 'Always show the welcome tour and offer no "Don\'t show again".',
+        default: false
+      })
+    ),
+
     apps: Type.Optional(
       Type.Array(AppEntrySchema, {
         title: 'Dock Apps',
