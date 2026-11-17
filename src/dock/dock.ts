@@ -709,7 +709,42 @@ function isFiniteNumber(v: unknown): v is number {
 
   const BASE_TITLE = document.title
 
-  function switchToApp(index: number) {
+  // ?open= names a page inside one of the dock's apps on this server, so a
+  // link can open the dock on it. A '#' left unencoded in the link lands in
+  // the dock's own hash and is handed on. Anything else is ignored, so a link
+  // cannot put a page from elsewhere inside the dock.
+  function deepLink(): { index: number; url: string } | null {
+    const open = new URLSearchParams(location.search).get('open')
+    if (!open) return null
+    let target: URL
+    try {
+      target = new URL(open.includes('#') ? open : open + location.hash, location.href)
+    } catch {
+      return null
+    }
+    if (target.origin !== location.origin) return null
+    // The app whose path holds the target most closely wins, so an app at
+    // /a/b/ takes /a/b/c before an app at /a/.
+    let bestIndex = -1
+    let bestLength = 0
+    for (const [index, app] of cfg.apps.entries()) {
+      let base: URL
+      try {
+        base = new URL(app.url, location.href)
+      } catch {
+        continue
+      }
+      if (base.origin !== location.origin) continue
+      const prefix = base.pathname.endsWith('/') ? base.pathname : base.pathname + '/'
+      if ((target.pathname + '/').startsWith(prefix) && prefix.length > bestLength) {
+        bestIndex = index
+        bestLength = prefix.length
+      }
+    }
+    return bestIndex >= 0 ? { index: bestIndex, url: target.pathname + target.search + target.hash } : null
+  }
+
+  function switchToApp(index: number, url?: string) {
     const app = cfg.apps[index]
     if (!app) return
 
@@ -759,7 +794,7 @@ function isFiniteNumber(v: unknown): v is number {
       $frame.addEventListener('load', hideLoading, { once: true })
 
       $iframeContainer.appendChild($frame)
-      $frame.src = app.url
+      $frame.src = url ?? app.url
 
       iframes[app.url] = $frame
     }
@@ -1193,8 +1228,11 @@ function isFiniteNumber(v: unknown): v is number {
 
   if (!cfg.tourDismissed || cfg.lockTour) showTour()
 
+  const link = deepLink()
   const autostartIdx = cfg.apps.findIndex((a) => a.autostart)
-  if (autostartIdx >= 0) {
+  if (link) {
+    switchToApp(link.index, link.url)
+  } else if (autostartIdx >= 0) {
     switchToApp(autostartIdx)
   } else {
     setIdleHint()

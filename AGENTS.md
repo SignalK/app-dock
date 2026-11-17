@@ -64,6 +64,9 @@ configs (`npm run typecheck:config`, the first step of `npm run build`).
 - **The active app's tile reloads it.** In keep-alive mode a frame lives as long as the dock page, so a webapp updated
   on the server would stay on its old version until the browser restarts. `switchToApp()` reloads the active app's frame
   at the page it is on (`reloadFrame()`); a frame on another origin starts over at the app's URL.
+- **`?open=` only opens the dock's own apps.** `deepLink()` in `dock.ts` accepts a target on the dock's origin whose
+  path lies under one of the configured apps, and loads it in that app's frame; anything else falls back to autostart.
+  Keep both checks: without them a link could show any page inside the dock on the server's address.
 - **Live config reload.** The dock polls the plugin every 5 s. A setting that changes how the dock is built belongs in
   `STRUCTURAL_KEYS` in `dock.ts` (the page reloads); app-list changes rebuild the dock in place.
 - **New settings touch four places:** `ConfigSchema` in `src/plugin/schema.ts`, `DockConfig` and `DEFAULTS` in
