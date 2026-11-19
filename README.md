@@ -36,14 +36,14 @@ Config changes made in **Plugin Config** apply automatically within ~5 seconds: 
 
 ### Linking to an app
 
-Add `?open=` to the dock's address to open it on one of its apps instead of the autostart app, for example to show someone a particular page:
+The dock's address follows the app on screen, down to the page you are on inside it. Copy it from the browser to show someone that page, or reload and you are back where you were. The address looks like this:
 
 ```
 http://your-sk-server:3000/@signalk/app-dock/?open=/@signalk/freeboard-sk/
 http://your-sk-server:3000/@signalk/app-dock/?open=/admin/#/serverConfiguration/plugins
 ```
 
-Everything after the app's own address is passed on, so the link can name a page inside the app. The app has to be on the dock and on the same server; a link to anything else opens the dock as usual.
+How far a page comes back depends on the app: the admin UI keeps every page in its address, while an app that keeps its view to itself (Freeboard-SK's map position, for example) opens at its start. An app on another server or port cannot be followed, so the address then names no app. A link to anything that is not on the dock opens the dock as usual.
 
 ## Install as an app
 

@@ -722,9 +722,15 @@ function isFiniteNumber(v: unknown): v is number {
     } catch {
       return null
     }
-    if (target.origin !== location.origin) return null
-    // The app whose path holds the target most closely wins, so an app at
-    // /a/b/ takes /a/b/c before an app at /a/.
+    const index = appFor(target)
+    return index >= 0 ? { index, url: target.pathname + target.search + target.hash } : null
+  }
+
+  // The app a page on this server belongs to, or -1. The app whose path holds
+  // the page most closely wins, so an app at /a/b/ takes /a/b/c before an app
+  // at /a/.
+  function appFor(target: URL): number {
+    if (target.origin !== location.origin) return -1
     let bestIndex = -1
     let bestLength = 0
     for (const [index, app] of cfg.apps.entries()) {
@@ -741,7 +747,43 @@ function isFiniteNumber(v: unknown): v is number {
         bestLength = prefix.length
       }
     }
-    return bestIndex >= 0 ? { index: bestIndex, url: target.pathname + target.search + target.hash } : null
+    return bestIndex
+  }
+
+  // The dock's address follows the page in the active app as ?open=, so a
+  // reload or a copied address comes back to it. The page's hash becomes the
+  // dock's, which deepLink() hands back, and the parameter keeps '/', '?',
+  // '=', ':' and '@' readable. A page the dock cannot read or that belongs to
+  // none of its apps leaves the app's own address; an app on another origin
+  // leaves none, since ?open= would not accept it.
+  let activeAppUrl: string | null = null
+
+  function syncAddress() {
+    if (activeAppUrl === null) return
+    const $frame = iframes[activeAppUrl]
+    let page = new URL(activeAppUrl, location.href)
+    try {
+      const href = $frame?.contentWindow?.location.href
+      if (href && !href.startsWith('about:')) {
+        const current = new URL(href)
+        if (appFor(current) >= 0) page = current
+      }
+    } catch {
+      // another origin
+    }
+    const params = new URLSearchParams(location.search)
+    params.delete('open')
+    const others = params.toString()
+    let address = location.pathname + (others ? '?' + others : '')
+    if (page.origin === location.origin) {
+      const open = encodeURIComponent(page.pathname + page.search).replace(/%(2F|3F|3D|3A|40)/g, (c) =>
+        decodeURIComponent(c)
+      )
+      address += (others ? '&' : '?') + 'open=' + open + page.hash
+    }
+    if (address !== location.pathname + location.search + location.hash) {
+      history.replaceState(history.state, '', address)
+    }
   }
 
   function switchToApp(index: number, url?: string) {
@@ -749,6 +791,7 @@ function isFiniteNumber(v: unknown): v is number {
     if (!app) return
 
     hideIdleHint()
+    activeAppUrl = app.url
     // Tabs, bookmarks and history then name the app on screen, not only the dock.
     document.title = app.label ? `${app.label} – ${BASE_TITLE}` : BASE_TITLE
 
@@ -792,6 +835,7 @@ function isFiniteNumber(v: unknown): v is number {
       $frame.style.touchAction = 'auto'
 
       $frame.addEventListener('load', hideLoading, { once: true })
+      $frame.addEventListener('load', syncAddress)
 
       $iframeContainer.appendChild($frame)
       $frame.src = url ?? app.url
@@ -800,6 +844,7 @@ function isFiniteNumber(v: unknown): v is number {
     }
 
     iframes[app.url].classList.add('active')
+    syncAddress()
     updateHandle()
     hideDock()
   }
@@ -1164,6 +1209,9 @@ function isFiniteNumber(v: unknown): v is number {
   }
 
   if (pluginReachable) setInterval(refreshConfig, 5000)
+  // Hash and history changes inside an app fire nothing the dock can hear on
+  // every app, so the address is compared once a second.
+  setInterval(syncAddress, 1000)
 
   // ─── Welcome tour ────────────────────────────────────────────────────────────
   const $tourOverlay = document.getElementById('tour-overlay')
@@ -1221,6 +1269,8 @@ function isFiniteNumber(v: unknown): v is number {
         $iframeContainer.appendChild($frame)
         $frame.src = adminUrl
         iframes[adminUrl] = $frame
+        activeAppUrl = adminUrl
+        $frame.addEventListener('load', syncAddress)
         hideTour()
       })
     }
