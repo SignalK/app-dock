@@ -34,6 +34,17 @@ Some apps run on another address (another port or another device), a radar displ
 
 Config changes made in **Plugin Config** apply automatically within ~5 seconds: structural changes (position, icon size, etc.) reload the dock page; changes to the app list hot-update in place.
 
+### Linking to an app
+
+The dock's address follows the app on screen, down to the page you are on inside it. Copy it from the browser to show someone that page, or reload and you are back where you were. The address looks like this:
+
+```
+http://your-sk-server:3000/@signalk/app-dock/?open=/@signalk/freeboard-sk/
+http://your-sk-server:3000/@signalk/app-dock/?open=/admin/#/serverConfiguration/plugins
+```
+
+How far a page comes back depends on the app: the admin UI keeps every page in its address, while an app that keeps its view to itself (Freeboard-SK's map position, for example) opens at its start. An app on another server or port cannot be followed, so the address then names no app. A link to anything that is not on the dock opens the dock as usual.
+
 ## Install as an app
 
 The dock ships a web app manifest, so iOS and Android can install it to the home screen and launch it like a native app -- no Safari/Chrome chrome, no URL bar.
